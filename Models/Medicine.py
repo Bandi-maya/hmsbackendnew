@@ -1,0 +1,36 @@
+from datetime import datetime
+from sqlalchemy.orm import validates
+from app_utils import db
+
+
+class Medicine(db.Model):
+    __tablename__ = 'medicine'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+    manufacturer = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    REQUIRED_FIELDS = ['name']
+
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value or not value.strip():
+            raise ValueError("Medicine name must be a non-empty string")
+        value = value.strip()
+        existing = Medicine.query.filter(Medicine.name==value, Medicine.id!=getattr(self, 'id', None)).first()
+        if existing:
+            raise ValueError("Medicine name must be unique")
+        return value
+
+    @validates('manufacturer')
+    def validate_manufacturer(self, key, value):
+        return value.strip() if value else None
+
+    def __init__(self, **kwargs):
+        missing = [f for f in self.REQUIRED_FIELDS if f not in kwargs or kwargs[f] is None]
+        if missing:
+            raise ValueError(f"Missing required fields: {', '.join(missing)}")
+        super().__init__(**kwargs)
