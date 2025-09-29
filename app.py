@@ -15,11 +15,13 @@ from Resources.UserFieldsResource import UserFieldsResource
 from Resources.UserTypesResource import UserTypesResource
 from Resources.UsersResource import UsersResource
 from Resources.WardsResource import WardsResource
+from Resources.AppointmentsResource import AppointmentsResource
+from Resources.TokensResource import TokenResource
 from app_utils import db, ma
 
 app = Flask(__name__)
 cors = CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Vignesh@localhost:5432/hms1'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Welcome%40123@localhost:5432/new_hms'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
@@ -39,3 +41,5 @@ api.add_resource(LabTestsResource, '/lab-tests')
 api.add_resource(LabRequestsResource, '/lab-requests')
 api.add_resource(LabReportsResource, '/lab-reports')
 api.add_resource(WardsResource, '/wards')
+api.add_resource(AppointmentsResource, '/appointment')
+api.add_resource(TokenResource, '/tokens')

@@ -8,6 +8,8 @@ class FieldTypeEnum(enum.Enum):
     STRING = "STRING"
     INTEGER = "INTEGER"
     JSON = "JSON"
+    
+    
 
 
 class UserField(db.Model):
