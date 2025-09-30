@@ -16,7 +16,7 @@ class Orders(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
+    #Relationships
     user = db.relationship('User', backref='orders', lazy=True)
     items = db.relationship('PurchaseOrder', back_populates='order', cascade="all, delete-orphan")
 

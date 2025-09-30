@@ -15,6 +15,10 @@ from Resources.UserFieldsResource import UserFieldsResource
 from Resources.UserTypesResource import UserTypesResource
 from Resources.UsersResource import UsersResource
 from Resources.WardsResource import WardsResource
+from Resources.AppointmentsResource import AppointmentsResource
+from Resources.TokensResource import TokenResource
+from Resources.PrescriptionResource import PrescriptionResource
+from Resources.BillingResource import BillingResource
 from app_utils import db, ma
 
 app = Flask(__name__)
@@ -39,3 +43,7 @@ api.add_resource(LabTestsResource, '/lab-tests')
 api.add_resource(LabRequestsResource, '/lab-requests')
 api.add_resource(LabReportsResource, '/lab-reports')
 api.add_resource(WardsResource, '/wards')
+api.add_resource(AppointmentsResource, '/appointment')
+api.add_resource(TokenResource, '/tokens')
+api.add_resource(PrescriptionResource, '/prescriptions')
+api.add_resource(BillingResource, '/billing')

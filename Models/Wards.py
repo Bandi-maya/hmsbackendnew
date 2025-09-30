@@ -11,6 +11,12 @@ class Ward(db.Model):
     name = db.Column(db.String(100), nullable=False, unique=True)
     ward_type = db.Column(db.String(100), nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
+    location = db.Column(db.String(100), nullable=False)
+    phone_no = db.Column(db.String(100), nullable=True)
+    email = db.Column(db.String(100), nullable=True)
+    speciality = db.Column(db.String(100), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
 
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     creator = db.relationship('User', foreign_keys=[created_by], lazy=True)
