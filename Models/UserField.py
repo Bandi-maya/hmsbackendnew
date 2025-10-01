@@ -8,7 +8,10 @@ class FieldTypeEnum(enum.Enum):
     STRING = "STRING"
     INTEGER = "INTEGER"
     JSON = "JSON"
-    
+
+class UserFieldStatusTypeEnum(enum.Enum):
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
     
 
 
@@ -18,6 +21,7 @@ class UserField(db.Model):
     user_type = db.Column(db.Integer, db.ForeignKey('user_type.id'), nullable=False)
     field_name = db.Column(db.String(100), nullable=False)
     is_mandatory = db.Column(db.Boolean, default=False)
+    status = db.Column(db.Enum(UserFieldStatusTypeEnum), nullable=False, default=UserFieldStatusTypeEnum.INACTIVE)
     field_type = db.Column(db.Enum(FieldTypeEnum), default=FieldTypeEnum.STRING)
 
     @validates("user_type")

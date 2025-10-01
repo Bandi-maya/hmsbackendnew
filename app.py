@@ -23,7 +23,7 @@ from app_utils import db, ma
 
 app = Flask(__name__)
 cors = CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Welcome%40123@localhost:5432/new_hms'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://hms:hms_main_123@91.108.104.49:5432/hms'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)

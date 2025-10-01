@@ -14,12 +14,9 @@ class Ward(db.Model):
     location = db.Column(db.String(100), nullable=False)
     phone_no = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(100), nullable=True)
-    speciality = db.Column(db.String(100), nullable=True)
+    specialization = db.Column(db.String(100), nullable=True)
     description = db.Column(db.Text, nullable=True)
     notes = db.Column(db.Text, nullable=True)
-
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    creator = db.relationship('User', foreign_keys=[created_by], lazy=True)
 
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
     department = db.relationship('Department', backref='wards', lazy=True)
@@ -27,7 +24,7 @@ class Ward(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    REQUIRED_FIELDS = ["name", "ward_type", "capacity", "created_by", "department_id"]
+    REQUIRED_FIELDS = ["name", "ward_type", "capacity", "department_id"]
 
     @validates("name")
     def validate_name(self, key, value):
