@@ -1,17 +1,20 @@
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 from Models.Appointments import Appointment
 from Serializers.AppointmentSerializers import AppointmentSerializers, AppointmentSerializerz
 from app_utils import db
-import datetime
+from datetime import datetime
 
 
 class AppointmentsResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         try:
             doctor_id = request.args.get("doctor_id")
-            appointment_date = request.args.get("appointment_date")
+            appointment_date = request.args.get("date")
             query = Appointment.query
             if doctor_id:
                 query = query.filter_by(doctor_id=doctor_id)

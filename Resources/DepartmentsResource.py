@@ -1,4 +1,5 @@
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 from Models.Department import Department
@@ -6,6 +7,8 @@ from Serializers.DepartmentSerializers import department_serializers, department
 from app_utils import db
 
 class DepartmentsResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         try:
             return department_serializers.dump(Department.query.all()), 200

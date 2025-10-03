@@ -1,4 +1,5 @@
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 import logging
@@ -11,6 +12,8 @@ from app_utils import db
 logger = logging.getLogger(__name__)
 
 class UserTypesResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         try:
             user_types = UserType.query.filter_by(is_active=True).all()

@@ -1,5 +1,9 @@
 # import requests
+import string
+import random
+
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
@@ -8,10 +12,16 @@ from Models.UserExtraFields import UserExtraFields
 from Models.UserField import UserField
 from Models.Users import User
 from Serializers.UserSerializers import user_serializers, user_serializer
-from app_utils import db
+from app_utils import db, send_email
 
+
+def generate_random_password(length=10):
+    chars = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(random.choice(chars) for _ in range(length))
 
 class UsersResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         try:
             user_id = request.args.get('user_id', type=int)
@@ -54,11 +64,18 @@ class UsersResource(Resource):
             if not user_type_id:
                 return {"error": "No user_type_id provided"}, 400
 
-            json_data['password'] = "Password124"
+            random_password = generate_random_password()
+            json_data['password'] = random_password
 
             user = User(**json_data)
             db.session.add(user)
             db.session.flush()
+
+            subject = "Your Account Password"
+            recipients = [user.email]
+            body = f"Hello {user.name},\n\nYour password is: {random_password}\nPlease change it after logging in."
+
+            send_email(subject, recipients, body)
 
             fields = UserField.query.filter_by(user_type=user_type_id).all()
 

@@ -1,4 +1,5 @@
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 from Models.MedicineStock import MedicineStock
@@ -8,6 +9,8 @@ from app_utils import db
 
 
 class MedicineStockResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         try:
             return medicine_stock_serializers.dump(MedicineStock.query.all()), 200

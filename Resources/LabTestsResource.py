@@ -1,4 +1,5 @@
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from Models.LabTest import LabTest
 from Serializers.LabTestSerializers import lab_test_serializer, lab_test_serializers
@@ -7,6 +8,8 @@ from sqlalchemy.exc import IntegrityError
 
 
 class LabTestsResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         try:
             return lab_test_serializers.dump(LabTest.query.all()), 200

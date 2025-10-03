@@ -1,4 +1,5 @@
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.util import counter
@@ -9,6 +10,8 @@ from Serializers.WardSerializer import ward_serializer, ward_serializers
 from app_utils import db
 
 class WardsResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         try:
             return ward_serializers.dump(Ward.query.all()), 200

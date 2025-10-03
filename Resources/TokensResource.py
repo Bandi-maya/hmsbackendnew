@@ -1,15 +1,18 @@
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 from app_utils import db
 from Serializers.TokenSerializers import TokenSerializers, TokenSerializerz
 from Models.Tokens import Token
-import datetime
+from datetime import datetime
 from Models.Appointments import Appointment
 from Serializers.AppointmentSerializers import AppointmentSerializers
 
 
 class TokenResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         try:
             department_id = request.args.get("department_id")
@@ -24,9 +27,11 @@ class TokenResource(Resource):
             if date:
                     # Convert string to date
                 try:
+                    print(date)
                     date_obj = datetime.strptime(date, "%Y-%m-%d")
                     query = query.filter(Appointment.appointment_date == date_obj)
-                except Exception:
+                except Exception as e:
+                    print(e)
                     return {"error": "Invalid date format. Use YYYY-MM-DD"}, 400
             appointments = query.all()
             return AppointmentSerializers.dump(appointments, many=True), 200

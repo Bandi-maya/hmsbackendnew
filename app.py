@@ -1,7 +1,4 @@
-from flask import Flask
-from flask_restful import Api
-from flask_cors import CORS
-
+from Resources.AuthResource import AuthResource
 from Resources.LabReportsResource import LabReportsResource
 from Resources.LabRequestsResource import LabRequestsResource
 from Resources.LabTestsResource import LabTestsResource
@@ -19,16 +16,7 @@ from Resources.AppointmentsResource import AppointmentsResource
 from Resources.TokensResource import TokenResource
 from Resources.PrescriptionResource import PrescriptionResource
 from Resources.BillingResource import BillingResource
-from app_utils import db, ma
-
-app = Flask(__name__)
-cors = CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://hms:hms_main_123@91.108.104.49:5432/hms'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db.init_app(app)
-ma.init_app(app)
-api = Api(app)
+from app_utils import api, app
 
 api.add_resource(DepartmentsResource, '/departments')
 api.add_resource(UsersResource, '/users')
@@ -47,3 +35,4 @@ api.add_resource(AppointmentsResource, '/appointment')
 api.add_resource(TokenResource, '/tokens')
 api.add_resource(PrescriptionResource, '/prescriptions')
 api.add_resource(BillingResource, '/billing')
+api.add_resource(AuthResource, '/login')

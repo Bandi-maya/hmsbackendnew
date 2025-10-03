@@ -1,4 +1,5 @@
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 
@@ -12,6 +13,8 @@ from app_utils import db
 
 
 class OrdersResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         try:
             return order_serializers.dump(Orders.query.all()), 200

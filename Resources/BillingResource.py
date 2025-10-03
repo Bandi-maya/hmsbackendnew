@@ -1,4 +1,5 @@
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 from app_utils import db
@@ -9,6 +10,8 @@ from Models.BillingTests import BillingTests
 
 
 class BillingResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         try:
             return billing_serializers.dump(Billing.query.all()), 200

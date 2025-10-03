@@ -1,4 +1,5 @@
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from Models.LabRequest import LabRequest
 from Models.Users import User
@@ -8,6 +9,8 @@ from app_utils import db
 
 
 class LabRequestsResource(Resource):
+    method_decorators = [jwt_required()]
+
     def get(self):
         return lab_request_serializers.dump(LabRequest.query.all()), 200
 
