@@ -7,5 +7,5 @@ class OperationTheatreSerializer(ma.SQLAlchemyAutoSchema):
         load_instance = True
         include_fk = True
 
-operation_serializer = OperationTheatreSerializer()
-operation_serializers = OperationTheatreSerializer(many=True)
+operation_theatre_serializer = OperationTheatreSerializer()
+operation_theatre_serializers = OperationTheatreSerializer(many=True)

@@ -12,9 +12,11 @@ class Prescriptions(db.Model):
     patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     notes = db.Column(db.Text, nullable=True)
+    is_billed = db.Column(db.Boolean, nullable=False, default=False)
+    is_deleted = db.Column(db.Boolean, nullable=False, default=False)
 
-    medicines = db.relationship('PrescriptionMedicines', backref='prescriptions', lazy=True)
-    tests = db.relationship('PrescriptionTests', backref='prescriptions', lazy=True)
+    # medicines = db.relationship('PrescriptionMedicines', backref='prescriptions', lazy=True)
+    # tests = db.relationship('PrescriptionTests', backref='prescriptions', lazy=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -32,6 +34,7 @@ class Prescriptions(db.Model):
     REQUIRED_FIELDS = ["patient_id", "doctor_id"]
     def __init__(self, **kwargs):
         missing = [field for field in self.REQUIRED_FIELDS if not kwargs.get(field)]
+        self.doctor_id = 2
         if missing:
             raise ValueError(f"Missing required fields: {', '.join(missing)}")
         super().__init__(**kwargs)

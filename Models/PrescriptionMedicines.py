@@ -13,6 +13,8 @@ class PrescriptionMedicines(db.Model):
     quantity = db.Column(db.Integer, nullable=False, default=1)
     notes = db.Column(db.Text, nullable=True)
 
+    prescription = db.relationship("Prescriptions", back_populates="medicines")
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -28,7 +30,9 @@ class PrescriptionMedicines(db.Model):
 
     @validates("medicine_id")
     def validate_name(self, key, value):
-        if not value or not isinstance(value, int):
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
             raise ValueError(f"{key} must be a number")
 
         existing = Medicine.query.get(value)
@@ -38,7 +42,9 @@ class PrescriptionMedicines(db.Model):
 
     @validates("quantity")
     def validate_name(self, key, value):
-        if not value or not isinstance(value, int):
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
             raise ValueError(f"{key} must be a number")
         return value
 
@@ -48,3 +54,9 @@ class PrescriptionMedicines(db.Model):
         if missing:
             raise ValueError(f"Missing required fields: {', '.join(missing)}")
         super().__init__(**kwargs)
+
+Prescriptions.medicines = db.relationship(
+    'PrescriptionMedicines',
+    back_populates='prescription',
+    lazy=True
+)

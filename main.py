@@ -13,6 +13,9 @@ from Models.LabRequest import LabRequest
 from Models.LabReport import LabReport
 from Models.Wards import Ward
 from Models.Appointments import Appointment
+# from Models.OperationTheatre import OperationTheatre
+# from Models.SurgeryType import SurgeryType
+# from Models.Surgery import Surgery
 
 
 migrate = Migrate(app, db)

@@ -27,7 +27,6 @@ class TokenResource(Resource):
             if date:
                     # Convert string to date
                 try:
-                    print(date)
                     date_obj = datetime.strptime(date, "%Y-%m-%d")
                     query = query.filter(Appointment.appointment_date == date_obj)
                 except Exception as e:
@@ -48,7 +47,6 @@ class TokenResource(Resource):
             token = Token(**json_data)
             db.session.add(token)
             db.session.commit()
-            print(token)
 
             return TokenSerializerz.dump(token), 201
         except ValueError as ve:

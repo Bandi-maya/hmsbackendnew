@@ -19,7 +19,6 @@ class AuthResource(Resource):
         if not user:
             return {'msg': 'Bad username or password'}, 401
         user = user_serializer.dump(user)
-        print(user)
         if user['password'] != password:
             return {'msg': 'Bad username or password'}, 401
 

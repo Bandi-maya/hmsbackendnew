@@ -18,7 +18,9 @@ class BillingTests(db.Model):
 
     @validates("billing_id")
     def validate_name(self, key, value):
-        if not value or not isinstance(value, int):
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
             raise ValueError(f"{key} must be a number")
 
         existing = Prescriptions.query.get(value)
@@ -28,7 +30,9 @@ class BillingTests(db.Model):
 
     @validates("test_id")
     def validate_name(self, key, value):
-        if not value or not isinstance(value, int):
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
             raise ValueError(f"{key} must be a number")
 
         existing = LabTest.query.get(value)

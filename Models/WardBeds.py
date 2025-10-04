@@ -10,7 +10,9 @@ class WardBeds(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     bed_no = db.Column(db.Integer, nullable=False, unique=True)
     ward_id = db.Column(db.Integer, db.ForeignKey('ward.id'), nullable=False)
-    status = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='FREE')
+    admission_date = db.Column(db.DateTime, nullable=True)
+    price = db.Column(db.Float, nullable=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     notes = db.Column(db.Text, nullable=True)
 

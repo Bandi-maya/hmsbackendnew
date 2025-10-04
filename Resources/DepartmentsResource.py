@@ -1,17 +1,25 @@
-from flask import request
+import json
+
+from flask import request, g
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
+
 from Models.Department import Department
 from Serializers.DepartmentSerializers import department_serializers, department_serializer
 from app_utils import db
+from utils.logger import log_activity
+
 
 class DepartmentsResource(Resource):
     method_decorators = [jwt_required()]
 
     def get(self):
         try:
-            return department_serializers.dump(Department.query.all()), 200
+            departments = Department.query.all()
+            result = department_serializers.dump(departments)
+            log_activity("GET_DEPARTMENTS", details=json.dumps({"count": len(result)}))
+            return result, 200
         except Exception as e:
             print(e)
             return {"error": "Internal error occurred"}, 500
@@ -24,8 +32,11 @@ class DepartmentsResource(Resource):
 
             department = Department(**json_data)
             db.session.add(department)
-            db.session.commit()
+            db.session.flush()
 
+            log_activity("CREATE_DEPARTMENT", details=json.dumps(department_serializer.dump(department)))
+
+            db.session.commit()
             return department_serializer.dump(department), 201
 
         except ValueError as ve:
@@ -55,12 +66,22 @@ class DepartmentsResource(Resource):
             if not department:
                 return {"error": "Department not found"}, 404
 
+            old_data = department_serializer.dump(department)
+
             for key, value in json_data.items():
                 if hasattr(department, key):
                     setattr(department, key, value)
 
             db.session.commit()
-            return department_serializer.dump(department), 200
+
+            new_data = department_serializer.dump(department)
+
+            log_activity("UPDATE_DEPARTMENT", details=json.dumps({
+                "before": old_data,
+                "after": new_data
+            }))
+
+            return new_data, 200
 
         except ValueError as ve:
             db.session.rollback()
@@ -77,8 +98,13 @@ class DepartmentsResource(Resource):
 
     def delete(self):
         try:
+            log_activity("DELETE_DEPARTMENT_ATTEMPT", details=json.dumps({
+                "message": "Delete not allowed by policy"
+            }))
             return {"error": "Now we are not allowing to delete the department."}
+
             department_id = request.args.get("id")
+
             if not department_id:
                 return {"error": "Department ID is required"}, 400
 
@@ -86,8 +112,12 @@ class DepartmentsResource(Resource):
             if not department:
                 return {"error": "Department not found"}, 404
 
+            deleted_data = department_serializer.dump(department)
             db.session.delete(department)
             db.session.commit()
+
+            log_activity("DELETE_DEPARTMENT", details=json.dumps(deleted_data))
+
             return {"message": "Department deleted successfully"}, 200
 
         except IntegrityError as ie:

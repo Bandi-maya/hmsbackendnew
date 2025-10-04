@@ -43,7 +43,6 @@ class AppointmentsResource(Resource):
             appointment = Appointment(**json_data)
             db.session.add(appointment)
             db.session.commit()
-            print(appointment)
 
             return AppointmentSerializerz.dump(appointment), 201
         except ValueError as ve:
