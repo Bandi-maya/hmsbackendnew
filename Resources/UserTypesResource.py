@@ -82,6 +82,7 @@ class UserTypesResource(Resource):
         try:
             return {"error": "Now we are not allowing to delete the User Type."}
             json_data = request.get_json(force=True)
+
             user_type_id = json_data.get("id")
             if not user_type_id:
                 return {"error": "User Type ID is required for delete"}, 400
@@ -90,12 +91,12 @@ class UserTypesResource(Resource):
             if not user_type:
                 return {"error": "User Type not found"}, 404
 
-            user = User.query.filter_by(user_type_id=user_type.id, is_active=True).first()
+            user = User.query.filter_by(user_type_id=user_type.id, is_active=True, is_deleted=False).first()
             if user:
                 return {"error": "User Type can not be deleted as a user(s) is assigned to it"}, 404
 
-
             user_type.is_active = False
+            user_type.is_deleted = True
             db.session.commit()
 
             return {"message": "User type deactivated successfully"}, 200

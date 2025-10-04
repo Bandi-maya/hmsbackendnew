@@ -12,7 +12,7 @@ class MedicineResource(Resource):
 
     def get(self):
         try:
-            return medicine_serializers.dump(Medicine.query.all()), 200
+            return medicine_serializers.dump(Medicine.query.filter_by(is_deleted=False).all()), 200
         except Exception as e:
             print(e)
             return {"error": "Internal error occurred"}, 500
@@ -65,6 +65,8 @@ class MedicineResource(Resource):
         if not medicine:
             return {"error": "Medicine not found"}, 404
 
-        db.session.delete(medicine)
+        medicine.is_deleted = True
+        medicine.is_active = False
+        # db.session.delete(medicine)
         db.session.commit()
         return {"message": "Medicine deleted successfully"}, 200

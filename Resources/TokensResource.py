@@ -23,18 +23,16 @@ class TokenResource(Resource):
             if doctor_id:
                     query = query.filter_by(doctor_id=doctor_id)
             if department_id:
-                    query = query.filter_by(doctor_id=department_id)
+                    query = query.filter_by(department_id=department_id)
             if date:
-                    # Convert string to date
                 try:
-                    print(date)
                     date_obj = datetime.strptime(date, "%Y-%m-%d")
-                    query = query.filter(Appointment.appointment_date == date_obj)
+                    query = query.filter(Token.appointment_date == date_obj)
                 except Exception as e:
                     print(e)
                     return {"error": "Invalid date format. Use YYYY-MM-DD"}, 400
             appointments = query.all()
-            return AppointmentSerializers.dump(appointments, many=True), 200
+            return TokenSerializers.dump(appointments, many=True), 200
         except Exception as e:
             print(e)
             return {"error": "Internal error occurred"}, 500
@@ -48,7 +46,6 @@ class TokenResource(Resource):
             token = Token(**json_data)
             db.session.add(token)
             db.session.commit()
-            print(token)
 
             return TokenSerializerz.dump(token), 201
         except ValueError as ve:

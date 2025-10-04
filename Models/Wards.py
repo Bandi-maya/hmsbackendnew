@@ -1,3 +1,4 @@
+import enum
 from datetime import datetime
 from sqlalchemy.orm import validates
 from app_utils import db
@@ -17,9 +18,13 @@ class Ward(db.Model):
     specialization = db.Column(db.String(100), nullable=True)
     description = db.Column(db.Text, nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    is_deleted = db.Column(db.Boolean, nullable=False, default=False)
 
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
     department = db.relationship('Department', backref='wards', lazy=True)
+
+    beds = db.relationship('WardBeds', backref='wards', lazy=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

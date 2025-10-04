@@ -1,4 +1,6 @@
 import enum
+from datetime import datetime
+
 from sqlalchemy.orm import validates
 from Models.UserType import UserType
 from app_utils import db
@@ -9,20 +11,20 @@ class FieldTypeEnum(enum.Enum):
     INTEGER = "INTEGER"
     JSON = "JSON"
 
-class UserFieldStatusTypeEnum(enum.Enum):
-    ACTIVE = "ACTIVE"
-    INACTIVE = "INACTIVE"
-    
-
-
 class UserField(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     user_type = db.Column(db.Integer, db.ForeignKey('user_type.id'), nullable=False)
     field_name = db.Column(db.String(100), nullable=False)
     is_mandatory = db.Column(db.Boolean, default=False)
-    status = db.Column(db.Enum(UserFieldStatusTypeEnum), nullable=False, default=UserFieldStatusTypeEnum.INACTIVE)
     field_type = db.Column(db.Enum(FieldTypeEnum), default=FieldTypeEnum.STRING)
+    is_active = db.Column(db.Boolean, default=True)
+    is_deleted = db.Column(db.Boolean, default=False)
+
+    user_type_data = db.relationship('UserType', backref=db.backref('users_field', lazy=True))
+
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
     @validates("user_type")
     def validate_user_type_id(self, key, value):

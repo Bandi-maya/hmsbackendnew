@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 from sqlalchemy.orm import validates
 from app_utils import db
 from Models.Users import User
@@ -21,7 +21,9 @@ class Appointment(db.Model):
     appointment_end_time = db.Column(db.Time, nullable=True)
     status = db.Column(db.String(50), nullable=False, default='Scheduled')  # e.g., Scheduled, Completed, Canceled
     duration = db.Column(db.Integer, nullable=True)
-    
+
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    is_deleted = db.Column(db.Boolean, nullable=False, default=False)
     
     reason = db.Column(db.Text, nullable=True)
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)
@@ -55,19 +57,21 @@ class Appointment(db.Model):
             raise ValueError("appointment date must be a datetime object or a date string")
         return value
 
-    @validates("appointment_starttime", "appointment_endtime")
+    @validates("appointment_start_time", "appointment_end_time")
     def appointment_time(self, key, value):
-        if value is not None and not isinstance(value, datetime.time):
-            raise ValueError(f"{key} must be a time object")
+        if isinstance(value, str):
+            try:
+                value = datetime.strptime(value, "%H:%M").time()
+            except ValueError:
+                raise ValueError(f"{key} must be a time string in 'HH:MM' format")
+        elif not isinstance(value, time):
+            raise ValueError(f"{key} must be a time object or time string in 'HH:MM' format")
         appointment_records = Appointment.query.filter_by(appointment_date=self.appointment_date, doctor_id=self.doctor_id).all()
         for record in appointment_records:
-            if key == "appointment_starttime" and record.appointment_starttime and record.appointment_endtime:
-                if record.appointment_starttime <= value <= record.appointment_endtime:
+            if record.appointment_start_time and record.appointment_end_time:
+                if record.appointment_start_time <= value <= record.appointment_end_time:
                     raise ValueError(f"{key} conflicts with another appointment")
-            if key == "appointment_endtime" and record.appointment_starttime and record.appointment_endtime:
-                if record.appointment_starttime <= value <= record.appointment_endtime:
-                    raise ValueError(f"{key} conflicts with another appointment")
-        
+
         return value
     
     @validates("reason")

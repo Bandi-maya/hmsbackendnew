@@ -35,6 +35,7 @@ class User(db.Model):
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
 
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    is_deleted = db.Column(db.Boolean, nullable=False, default=False)
 
     user_type_id = db.Column(db.Integer, db.ForeignKey('user_type.id'), nullable=False)
     user_type = db.relationship('UserType', backref=db.backref('users', lazy=True))

@@ -26,7 +26,6 @@ class LabRequestsResource(Resource):
             for test in test_ids:
                 if not LabTest.query.get(test):
                     return {"error": "LabTest not found"}, 404
-                print(test, json_data)
                 lab_request = LabRequest(**json_data, test_id=test)
                 db.session.add(lab_request)
             db.session.commit()

@@ -16,6 +16,9 @@ class Token(db.Model):
     token_number = db.Column(db.Integer, nullable=False)
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)
 
+    patient = db.relationship('User', foreign_keys=[patient_id], backref='patient_tokens', lazy=True)
+    doctor = db.relationship('User', foreign_keys=[doctor_id], backref='doctor_tokens', lazy=True)
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     

@@ -27,7 +27,7 @@ class AppointmentsResource(Resource):
                 except Exception:
                     return {"error": "Invalid date format. Use YYYY-MM-DD"}, 400
 
-            appointments = query.all()
+            appointments = query.filter_by(is_deleted=False).all()
 
             return AppointmentSerializers.dump(appointments, many=True), 200
         except Exception as e:
@@ -43,7 +43,6 @@ class AppointmentsResource(Resource):
             appointment = Appointment(**json_data)
             db.session.add(appointment)
             db.session.commit()
-            print(appointment)
 
             return AppointmentSerializerz.dump(appointment), 201
         except ValueError as ve:
@@ -102,7 +101,9 @@ class AppointmentsResource(Resource):
             if not appointment:
                 return {"error": "Appointment not found"}, 404
 
-            db.session.delete(appointment)
+            appointment.is_deleted = True
+            appointment.is_active = False
+            # db.session.delete(appointment)
             db.session.commit()
             return {"message": "Appointment deleted successfully"}, 200
         except Exception as e:

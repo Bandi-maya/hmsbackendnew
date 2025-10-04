@@ -5,11 +5,13 @@ import random
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 
 from Models.UserExtraFields import UserExtraFields
 from Models.UserField import UserField
+from Models.UserType import UserType
 from Models.Users import User
 from Serializers.UserSerializers import user_serializers, user_serializer
 from app_utils import db, send_email
@@ -25,25 +27,25 @@ class UsersResource(Resource):
     def get(self):
         try:
             user_id = request.args.get('user_id', type=int)
-            user_type_id = request.args.get('user_type_id')
+            user_type = request.args.get('user_type')
             department_id = request.args.get('department_id')
 
+            query = User.query
+
             if user_id:
-                user = User.query.get(user_id)
+                user = query.get(user_id)
                 if not user:
                     return {"error": "User not found"}, 404
                 return user_serializers.dump(user), 200
 
-            if user_type_id:
-                users = User.query.filter_by(user_type_id=user_type_id).all()
-                return user_serializers.dump(users, many=True), 200
+            if user_type:
+                print(user_type)
+                query = query.join(UserType).filter(func.upper(UserType.type) == user_type.upper())
 
             if department_id:
-                users = User.query.filter_by(department_id=department_id).all()
-                return user_serializers.dump(users, many=True), 200
+                query = query.filter(User.department_id == department_id)
 
-            # If no filters, return all users
-            users = User.query.all()
+            users = query.all()
             return user_serializers.dump(users), 200
 
         except IntegrityError as ie:
@@ -175,9 +177,11 @@ class UsersResource(Resource):
             if not user:
                 return {"error": "User not found"}, 404
 
-            UserExtraFields.query.filter_by(user_id=user_id).delete()
+            user.is_deleted = True
+            user.is_active = False
+            # UserExtraFields.query.filter_by(user_id=user_id).delete()
 
-            db.session.delete(user)
+            # db.session.delete(user)
             db.session.commit()
 
             return {"message": "User and associated fields deleted successfully"}, 200

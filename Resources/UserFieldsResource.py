@@ -15,7 +15,7 @@ class UserFieldsResource(Resource):
 
     def get(self):
         try:
-            return user_field_serializers.dump(UserField.query.all()), 200
+            return user_field_serializers.dump(UserField.query.filter_by(is_deleted=False).all()), 200
 
         except IntegrityError as ie:
             return {"error": "Database integrity error: " + str(ie.orig)}, 400
@@ -139,9 +139,9 @@ class UserFieldsResource(Resource):
                 if user_extra_fields_data and user_extra_fields_data.fields_data:
                     return {"error": "Cannot delete as this field is linked to user(s)"}, 400
 
-            UserField.query.filter_by(id=field_id).delete()
+            user_field.is_deleted = True
+            user_field.is_active = False
 
-            db.session.delete(user_field)
             db.session.commit()
             return {"message": "Field deleted successfully"}, 200
 

@@ -58,8 +58,6 @@ class OrdersResource(Resource):
                     db.session.rollback()
                     return {"error": f"Medicine ID {medicine_id} not found"}, 404
 
-                print("jo")
-
                 purchase_item = PurchaseOrder(
                     order_id=order.id,
                     medicine_id=medicine_id,
@@ -67,10 +65,6 @@ class OrdersResource(Resource):
                     order_date=order_date
                 )
                 db.session.add(purchase_item)
-
-            # invoice = Invoice(order_id=order.id, total_amount=total_amount, created_by=json_data.get("created_by"))
-            # print(invoice)
-            # db.session.add(invoice)
 
             db.session.commit()
             return order_serializer.dump(order), 201

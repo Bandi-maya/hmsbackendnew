@@ -6,18 +6,13 @@ from sqlalchemy.orm import validates
 from app_utils import db
 
 
-class UserTypeStatusEnum(enum.Enum):
-    ACTIVE = "ACTIVE"
-    INACTIVE = "INACTIVE"
-
-
 class UserType(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     type = db.Column(db.String, nullable=False)
     description = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    status = db.Column(db.Enum(UserTypeStatusEnum), nullable=False, default=UserTypeStatusEnum.INACTIVE)
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

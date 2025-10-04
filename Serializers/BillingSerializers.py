@@ -1,3 +1,5 @@
+from Models.BillingBeds import BillingBeds
+from Models.BillingSurgeries import BillingSurgeries
 from app_utils import ma
 from Models.Billing import Billing
 from Models.BillingMedicines import BillingMedicines
@@ -13,6 +15,24 @@ class BillingMedicineSerializer(ma.SQLAlchemyAutoSchema):
 billing_medicine_serializer = BillingMedicineSerializer()
 billing_medicine_serializers = BillingMedicineSerializer(many=True)
 
+class BillingBedsSerializer(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = BillingBeds
+        # load_instance = True
+        include_fk = True
+
+billing_beds_serializer = BillingBedsSerializer()
+billing_beds_serializers = BillingBedsSerializer(many=True)
+
+class BillingSurgeriesSerializer(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = BillingSurgeries
+        # load_instance = True
+        include_fk = True
+
+billing_surgeries_serializer = BillingSurgeriesSerializer()
+billing_surgeries_serializers = BillingSurgeriesSerializer(many=True)
+
 class BillingTestsSerializer(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = BillingTests
@@ -25,6 +45,9 @@ billing_test_serializers = BillingTestsSerializer(many=True)
 class BillingSerializer(ma.SQLAlchemyAutoSchema):
     medicines = ma.Nested(BillingMedicineSerializer, many=True)
     tests = ma.Nested(BillingTestsSerializer, many=True)
+    beds = ma.Nested(BillingBedsSerializer, many=True)
+    surgeries = ma.Nested(BillingSurgeriesSerializer, many=True)
+
     patient = ma.Nested(UserSchema, many=False)
     doctor = ma.Nested(UserSchema, many=False)
     

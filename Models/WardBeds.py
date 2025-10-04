@@ -1,8 +1,15 @@
+import enum
 from datetime import datetime
 from sqlalchemy.orm import validates
 from app_utils import db
 from Models.Wards import Ward
 from Models.Users import User
+
+class WardBedStatusEnum(enum.Enum):
+    AVAILABLE = 'AVAILABLE'
+    UNAVAILABLE = 'UNAVAILABLE'
+    OCCUPIED = 'OCCUPIED'
+    UNDER_MAINTENANCE = 'UNDER_MAINTENANCE'
 
 class WardBeds(db.Model):
     __tablename__ = 'ward_beds'
@@ -10,9 +17,13 @@ class WardBeds(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     bed_no = db.Column(db.Integer, nullable=False, unique=True)
     ward_id = db.Column(db.Integer, db.ForeignKey('ward.id'), nullable=False)
-    status = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='AVAILABLE')
+    admission_date = db.Column(db.DateTime, nullable=True)
+    price = db.Column(db.Float, nullable=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    is_deleted = db.Column(db.Boolean, nullable=False, default=False)
 
     creator = db.relationship('User', foreign_keys=[patient_id], lazy=True)
     ward = db.relationship('Ward', foreign_keys=[ward_id], lazy=True)
