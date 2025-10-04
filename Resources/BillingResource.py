@@ -32,8 +32,8 @@ class BillingResource(Resource):
             tests = json_data.get("tests")
             surgeries = json_data.get("surgeries")
             isMedicinesExists = bool(medicines and isinstance(medicines, list))
-            isTestsExists= bool(tests and isinstance(tests, list))
-            isSurgeriesExists= bool(surgeries and isinstance(surgeries, list))
+            isTestsExists = bool(tests and isinstance(tests, list))
+            isSurgeriesExists = bool(surgeries and isinstance(surgeries, list))
 
             if not (isMedicinesExists or isTestsExists or isSurgeriesExists):
                 return {"error": "Medicines or Tests or Surgeries are required for a billing"}
@@ -47,7 +47,8 @@ class BillingResource(Resource):
             if billing:
                 total_amount += billing.total_amount
             else:
-                billing = Billing(patient_id=json_data.get('patient_id'), notes=json_data.get('notes'), prescription_id=json_data.get('prescription_id'))
+                billing = Billing(patient_id=json_data.get('patient_id'), notes=json_data.get('notes'),
+                                  prescription_id=json_data.get('prescription_id'))
                 db.session.add(billing)
                 db.session.flush()
 
@@ -202,7 +203,8 @@ class BillingResource(Resource):
 
             to_delete_surgs = existing_surg_ids - new_surg_ids
             if to_delete_surgs:
-                BillingSurgeries.query.filter(BillingSurgeries.id.in_(to_delete_surgs)).delete(synchronize_session=False)
+                BillingSurgeries.query.filter(BillingSurgeries.id.in_(to_delete_surgs)).delete(
+                    synchronize_session=False)
 
             # Tests update (unchanged)
             existing_tests = BillingTests.query.filter_by(billing_id=billing.id).all()
@@ -249,7 +251,6 @@ class BillingResource(Resource):
             print(f"PUT /billing error: {e}")
             return {"error": "Internal error occurred"}, 500
 
-
     def delete(self):
         order_id = request.args.get("id")
         if not order_id:
@@ -258,7 +259,7 @@ class BillingResource(Resource):
         order = Billing.query.get(order_id)
         if not order:
             return {"error": "Order not found"}, 404
-        
+
         BillingMedicines.query.filter_by(billing_id=order_id).delete()
         BillingTests.query.filter_by(billing_id=order_id).delete()
         BillingSurgeries.query.filter_by(billing_id=order_id).delete()
