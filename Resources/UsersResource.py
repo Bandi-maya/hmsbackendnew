@@ -2,7 +2,7 @@
 import string
 import random
 
-from flask import request
+from flask import request, g
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy import func
@@ -26,11 +26,18 @@ class UsersResource(Resource):
 
     def get(self):
         try:
-            user_id = request.args.get('user_id', type=int)
-            user_type = request.args.get('user_type')
-            department_id = request.args.get('department_id')
-
+            user_type = None
+            if hasattr(g, "user"):
+                user_type = g.user.get('user_type').get('type')
             query = User.query
+            user_id = request.args.get('user_id', type=int)
+            department_id = request.args.get('department_id')
+            if user_type == 'Admin':
+                pass
+            elif user_type == 'Patient':
+                query = query.filter_by(id=g.user.get('id'))
+            else:
+                query = query.filter(User.department_id == g.user.get('department_id'))
 
             if user_id:
                 user = query.get(user_id)
@@ -38,13 +45,14 @@ class UsersResource(Resource):
                     return {"error": "User not found"}, 404
                 return user_serializers.dump(user), 200
 
-            if user_type:
-                print(user_type)
-                query = query.join(UserType).filter(func.upper(UserType.type) == user_type.upper())
 
             if department_id:
                 query = query.filter(User.department_id == department_id)
 
+            user_type = request.args.get('user_type')
+            if user_type:
+                print(user_type)
+                query = query.join(UserType).filter(func.upper(UserType.type) == user_type.upper())
             users = query.all()
             return user_serializers.dump(users), 200
 
