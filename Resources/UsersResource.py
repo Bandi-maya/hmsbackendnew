@@ -18,7 +18,7 @@ from app_utils import db, send_email
 
 
 def generate_random_password(length=10):
-    chars = string.ascii_letters + string.digits + string.punctuation
+    chars = string.ascii_letters + string.digits + """!#$%&()*+,-.:;<=>?@[]_{}"""
     return ''.join(random.choice(chars) for _ in range(length))
 
 class UsersResource(Resource):

@@ -1,7 +1,6 @@
 from datetime import datetime
 from sqlalchemy.orm import validates
 
-from Models.Surgery import Surgery
 from app_utils import db
 from Models.Prescriptions import Prescriptions
 from Models.LabTest import LabTest
@@ -30,17 +29,17 @@ class PrescriptionTests(db.Model):
             raise ValueError("Prescription not found")
         return value
 
-    @validates("surgery_id")
+    @validates("test_id")
     def validate_test_id(self, key, value):
         if not value or not isinstance(value, int):
             raise ValueError(f"{key} must be a number")
 
-        existing = Surgery.query.get(value)
+        existing = LabTest.query.get(value)
         if not existing:
             raise ValueError("Test not found")
         return value
 
-    REQUIRED_FIELDS = ["prescription_id", "surgery_id"]
+    REQUIRED_FIELDS = ["prescription_id", "test_id"]
     def __init__(self, **kwargs):
         missing = [field for field in self.REQUIRED_FIELDS if not kwargs.get(field)]
         if missing:

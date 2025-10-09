@@ -1,7 +1,8 @@
-from flask import request, g
+from flask import request, g, send_from_directory
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
 from Models.Users import User
+from Resources.AccountInfoResource import AccountInfoResource
 from Resources.ActivityLogsResource import ActivityLogsResource
 from Resources.AuthResource import AuthResource
 from Resources.BillingPaymentResource import BillingPaymentResource
@@ -34,7 +35,7 @@ from app_utils import api, app, jwt
 @app.before_request
 def load_logged_in_user():
     print(request.url)
-    if request.method == 'OPTIONS' or request.url.endswith('/login'):
+    if request.method == 'OPTIONS' or request.url.endswith('/login') or request.url.__contains__('uploads'):
         # Allow preflight request without authentication
         return
     g.user = None
@@ -52,6 +53,11 @@ def load_logged_in_user():
         return {"msg": "Token has expired"}, 400
     # except Exception as e:
     #     g.user = None
+
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory('uploads', filename)
 
 api.add_resource(DepartmentsResource, '/departments')
 api.add_resource(UsersResource, '/users')
@@ -78,3 +84,4 @@ api.add_resource(SurgeryTypeResource, '/surgery-type')
 api.add_resource(BillingPaymentResource, '/billing/<int:billing_id>/payments', '/payment')
 api.add_resource(SurgeryDoctorResource, '/surgery-doctor')
 api.add_resource(ActivityLogsResource, '/activity-logs')
+api.add_resource(AccountInfoResource, '/account-info')
