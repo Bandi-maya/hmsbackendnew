@@ -7,6 +7,9 @@ class AccountInfo(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
+    subdomain = db.Column(db.String(100), unique=True, nullable=False)  # e.g., "tenant1"
+    db_uri = db.Column(db.String(255), nullable=False)  # e.g., "postgresql://user:password@host/tenant1_db"
+
     logo_url = db.Column(db.String, nullable=False)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)

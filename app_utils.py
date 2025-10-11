@@ -15,6 +15,7 @@ ma = Marshmallow()
 app = Flask(__name__)
 cors = CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://hms:hms_main_123@91.108.104.49:5432/hms'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user_3412c733:997c075e263e4fc1@91.108.104.49:5432/tenant_3412c733'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
