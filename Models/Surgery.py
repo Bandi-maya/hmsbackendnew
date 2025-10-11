@@ -1,5 +1,5 @@
 from datetime import datetime
-from app_utils import db
+from extentions import db
 from Models.SurgeryType import SurgeryType
 from Models.OperationTheatre import OperationTheatre
 from Models.PrescritionSurgeries import PrescriptionSurgeries

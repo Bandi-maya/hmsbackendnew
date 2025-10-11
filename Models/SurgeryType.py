@@ -1,7 +1,7 @@
 from datetime import datetime
 from Models.Department import Department
 
-from app_utils import db
+from extentions import db
 
 class SurgeryType(db.Model):
     __tablename__ = 'surgery_types'

@@ -1,4 +1,4 @@
-from app_utils import ma
+from extentions import ma
 from Models.LabTest import LabTest
 
 

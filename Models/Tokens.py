@@ -1,12 +1,14 @@
 from datetime import datetime
 from sqlalchemy.orm import validates
-from app_utils import db
+from extentions import db
 from Models.Users import User
 import enum
 from Models.Department import Department
 
 class Token(db.Model):
     __tablename__ = "Token"
+
+    tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -27,7 +29,9 @@ class Token(db.Model):
         if value is not None:
             if not isinstance(value, int) or value <= 0:
                 return None
-            user = User.query.get(value)
+
+            session = self.tenant_session or db.session
+            user = session.query(User).get(value)
             if not user:
                 raise ValueError("Doctor not found.")
         return value
@@ -36,7 +40,9 @@ class Token(db.Model):
     def validate_user_id(self, key, value):
         if not isinstance(value, int) or value <= 0:
             raise ValueError(f"{key} must be a positive integer")
-        user = User.query.get(value)
+
+        session = self.tenant_session or db.session
+        user = session.query(User).get(value)
         if not user:
             string = "Patient" if key == "patient_id" else "Doctor"
             raise ValueError(f"{string} not found.")
@@ -47,7 +53,9 @@ class Token(db.Model):
         if value is not None:
             if not isinstance(value, int) or value <= 0:
                 raise ValueError(f"{key} must be a positive integer")
-            department = Department.query.get(value)
+
+            session = self.tenant_session or db.session
+            department = session.query(Department).get(value)
             if not department:
                 raise ValueError("Department not found.")
         return value
@@ -61,6 +69,7 @@ class Token(db.Model):
                 raise ValueError("appointment date must be a valid date string YYYY-MM-DD")
         elif not isinstance(value, datetime):
             raise ValueError("appointment date must be a datetime object or a date string")
-    
-        self.token_number = Token.query.filter_by(department_id = self.department_id,appointment_date=self.appointment_date).count() + 1
+
+        session = self.tenant_session or db.session
+        self.token_number = session.query(Token).filter_by(department_id = self.department_id,appointment_date=self.appointment_date).count() + 1
         return value

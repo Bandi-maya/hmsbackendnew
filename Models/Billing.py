@@ -1,7 +1,9 @@
 from datetime import datetime
+
+from flask import session
 from sqlalchemy.orm import validates, relationship
 import json
-from app_utils import db
+from extentions import db
 from Models.Users import User
 
 
@@ -14,6 +16,8 @@ from Models.Payments import Payment
 
 class Billing(db.Model):
     __tablename__ = "billing"
+
+    tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -44,7 +48,9 @@ class Billing(db.Model):
     def validate_priscription_id(self, key, value):
         if not value or not isinstance(value, int):
             return None
-        existing = Billing.query.filter(Billing.prescription_id == value, Billing.id != self.id).first()
+
+        session = self.tenant_session or db.session
+        existing = session.query(Billing).filter(Billing.prescription_id == value, Billing.id != self.id).first()
         if existing:
             raise ValueError(f"Prescription ID {value} is already billed.")
         return value
@@ -53,7 +59,9 @@ class Billing(db.Model):
     def validate_user_id(self, key, value):
         if not value or not isinstance(value, int):
             raise ValueError(f"{key} must be a valid integer ID.")
-        existing = User.query.get(value)
+
+        session = self.tenant_session or db.session
+        existing = session.query(User).get(value)
         if not existing:
             raise ValueError(f"User (ID: {value}) for {key} not found.")
         return value

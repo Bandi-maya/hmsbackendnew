@@ -1,8 +1,8 @@
 """added tables
 
-Revision ID: 1bdcb37cda2d
+Revision ID: 3ad9527b0d5c
 Revises: 
-Create Date: 2025-10-10 00:42:16.680002
+Create Date: 2025-10-12 04:35:20.198601
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '1bdcb37cda2d'
+revision = '3ad9527b0d5c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,10 +21,13 @@ def upgrade():
     op.create_table('account_info',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
+    sa.Column('subdomain', sa.String(length=100), nullable=False),
+    sa.Column('db_uri', sa.String(length=255), nullable=False),
     sa.Column('logo_url', sa.String(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('subdomain')
     )
     op.create_table('activity_logs',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -129,7 +132,7 @@ def upgrade():
     sa.Column('blood_type', sa.String(), nullable=True),
     sa.Column('username', sa.String(length=100), nullable=False),
     sa.Column('email', sa.String(length=100), nullable=False),
-    sa.Column('password', sa.String(length=100), nullable=True),
+    sa.Column('password', sa.String(length=512), nullable=True),
     sa.Column('department_id', sa.Integer(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('is_deleted', sa.Boolean(), nullable=False),

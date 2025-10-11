@@ -1,5 +1,5 @@
 from Serializers.UserTypeSerializer import UserTypeSerializer
-from app_utils import ma
+from extentions import ma
 from Models.UserField import UserField
 
 

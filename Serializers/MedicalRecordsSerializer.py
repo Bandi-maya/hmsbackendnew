@@ -1,6 +1,6 @@
 from Models.MedicalRecords import MedicalRecords
 from Serializers.UserSerializers import user_serializer
-from app_utils import ma
+from extentions import ma
 
 class MedicalRecordsSerializer(ma.SQLAlchemyAutoSchema):
     user = ma.Nested(user_serializer, dump_only=True)

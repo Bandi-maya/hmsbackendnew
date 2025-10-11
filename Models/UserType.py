@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import validates
 
-from app_utils import db
+from extentions import db
 
 
 class UserType(db.Model):
@@ -20,17 +20,16 @@ class UserType(db.Model):
     REQUIRED_FIELDS = ['type']
 
     @validates('type', 'description')
-    def validate_type(self, key, value):
-        if not isinstance(value, str) or not value.strip():
+    def validate_type(self, key, value, session=None):
+        value = value.strip()
+        if not value:
             raise ValueError(f"{key} must be a non-empty string")
 
-        if key == 'type':
-            print(value)
-            existing_user_type = UserType.query.filter_by(type=value, is_active=True).first()
+        if key == 'type' and session:
+            existing_user_type = session.query(UserType).filter_by(type=value, is_active=True).first()
             if existing_user_type and (not self.id or existing_user_type.id != self.id):
                 raise ValueError("Type must be unique")
-
-        return value.strip()
+        return value
 
     def __init__(self, **kwargs):
         missingFields = [field for field in self.REQUIRED_FIELDS if not kwargs.get(field)]

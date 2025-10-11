@@ -1,3 +1,9 @@
-import secrets
+from configure_routes import configure_routes
+from extentions import db, ma, mail, jwt, api
+from app_utils import app
 
-jwt_secret_key = secrets.token_urlsafe(32)
+db.init_app(app)
+ma.init_app(app)
+api.init_app(app)
+mail.init_app(app)
+jwt.init_app(app)

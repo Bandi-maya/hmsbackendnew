@@ -1,5 +1,5 @@
 from Models.UserType import UserType
-from app_utils import ma
+from extentions import ma
 
 
 class UserTypeSerializer(ma.SQLAlchemyAutoSchema):

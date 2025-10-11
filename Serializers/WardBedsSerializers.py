@@ -1,5 +1,5 @@
 from Models.WardBeds import WardBeds
-from app_utils import ma
+from extentions import ma
 
 class WardBedsSerializer(ma.SQLAlchemyAutoSchema):
     class Meta:

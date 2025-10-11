@@ -1,5 +1,5 @@
 from Models.Surgery import Surgery
-from app_utils import ma
+from extentions import ma
 
 class SurgerySerializer(ma.SQLAlchemyAutoSchema):
     class Meta:

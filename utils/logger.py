@@ -1,7 +1,7 @@
 from flask import request, g
 
 from Models.ActivityLogs import ActivityLog
-from app_utils import db
+from extentions import db
 
 
 def log_activity(action, details=None):

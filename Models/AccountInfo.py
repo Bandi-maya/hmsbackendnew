@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy.orm import validates
-from app_utils import db
+from extentions import db
 
 class AccountInfo(db.Model):
     __tablename__ = "account_info"

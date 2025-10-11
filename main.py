@@ -1,27 +1,8 @@
 from flask_migrate import Migrate
 
-from app import app
-from app_utils import db
-from Models.UserType import UserType
-from Models.UserField import  UserField
-from Models.Users import User
-from Models.MedicalRecords import MedicalRecords
-from Models.Medicine import Medicine
-from Models.MedicineStock import MedicineStock
-from Models.LabTest import LabTest
-from Models.LabRequest import LabRequest
-from Models.LabReport import LabReport
-from Models.Wards import Ward
-from Models.Appointments import Appointment
-# from Models.OperationTheatre import OperationTheatre
-# from Models.SurgeryType import SurgeryType
-# from Models.Surgery import Surgery
-
+from test import app, db
 
 migrate = Migrate(app, db)
 
 if __name__ == '__main__':
-    with app.app_context():
-        app.run(debug=True, host='0.0.0.0', port=5000
-                # , ssl_context=("cert.pem", "key.pem")
-                )
+    app.run(debug=True, host='0.0.0.0', port=5000)

@@ -4,7 +4,7 @@ from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import validates
 
 from Models.UserType import UserType
-from app_utils import db
+from extentions import db
 from Models.UserExtraFields import UserExtraFields
 from Models.Department import Department
 
@@ -18,6 +18,8 @@ class GenderEnum(enum.Enum):
 class User(db.Model):
     __tablename__ = 'user'
 
+    tenant_session = None
+
     id = db.Column(db.Integer, primary_key=True)
 
     name = db.Column(db.String(100), nullable=False)
@@ -30,7 +32,7 @@ class User(db.Model):
 
     username = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), nullable=False)
-    password = db.Column(db.String(100), nullable=True)
+    password = db.Column(db.String(512), nullable=True)
 
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
 
@@ -93,16 +95,10 @@ class User(db.Model):
         except Exception:
             raise ValueError("user_type_id must be an integer")
 
-        # Check if user_type_id exists
-        if not UserType.query.get(value):
+        session = self.tenant_session or db.session
+        if not session.query(UserType).get(value):
             raise ValueError(f"user_type_id {value} does not exist in UserType table")
 
-        return value
-
-    @validates('address')
-    def validate_address(self, key, value):
-        if not isinstance(value, dict):
-            raise ValueError("address must be a JSON object")
         return value
 
     @validates('username')
@@ -111,7 +107,8 @@ class User(db.Model):
             raise ValueError("username must be a non-empty string")
         value = value.strip()
 
-        existing_user = User.query.filter_by(username=value, is_active=True).first()
+        session = self.tenant_session or db.session
+        existing_user = session.query(User).filter_by(username=value, is_active=True).first()
         if existing_user and (not self.id or existing_user.id != self.id):
             raise ValueError("username must be unique")
 
@@ -123,10 +120,17 @@ class User(db.Model):
             raise ValueError("email must be a non-empty string")
         value = value.strip()
 
-        existing_user = User.query.filter_by(email=value, is_active=True).first()
+        session = self.tenant_session or db.session
+        existing_user = session.query(User).filter_by(email=value, is_active=True).first()
         if existing_user and (not self.id or existing_user.id != self.id):
             raise ValueError("email must be unique")
 
+        return value
+
+    @validates('address')
+    def validate_address(self, key, value):
+        if not isinstance(value, dict):
+            raise ValueError("address must be a JSON object")
         return value
 
     @validates('name', 'password')

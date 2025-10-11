@@ -1,5 +1,5 @@
 from Models.ActivityLogs import ActivityLog
-from app_utils import ma
+from extentions import ma
 
 class ActivityLogsSerializer(ma.SQLAlchemyAutoSchema):
 

@@ -3,12 +3,14 @@ from sqlalchemy.orm import validates
 
 from Models.Surgery import Surgery
 from Models.WardBeds import WardBeds
-from app_utils import db
+from extentions import db
 from Models.Prescriptions import Prescriptions
 
 
 class BillingSurgeries(db.Model):
     __tablename__ = "billing_surgeries"
+
+    tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
     billing_id = db.Column(db.Integer, db.ForeignKey('billing.id'), nullable=False)
@@ -25,8 +27,8 @@ class BillingSurgeries(db.Model):
             value = int(value)
         except (TypeError, ValueError):
             raise ValueError(f"{key} must be a number")
-
-        existing = Prescriptions.query.get(value)
+        session = self.tenant_session or db.session
+        existing = session.query(Prescriptions).get(value)
         if not existing:
             raise ValueError(f"Billing not found")
         return value
@@ -36,7 +38,8 @@ class BillingSurgeries(db.Model):
         if not value or not isinstance(value, int):
             raise ValueError(f"{key} must be a number")
 
-        existing = Surgery.query.get(value)
+        session = self.tenant_session or db.session
+        existing = session.query(Surgery).get(value)
         if not existing:
             raise ValueError(f"Surgery not found")
         self.price = existing.price

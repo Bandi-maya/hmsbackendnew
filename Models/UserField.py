@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import validates
 from Models.UserType import UserType
-from app_utils import db
+from extentions import db
 
 
 class FieldTypeEnum(enum.Enum):
@@ -13,6 +13,8 @@ class FieldTypeEnum(enum.Enum):
 
 class UserField(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+
+    tenant_session = None
 
     user_type = db.Column(db.Integer, db.ForeignKey('user_type.id'), nullable=False)
     field_name = db.Column(db.String(100), nullable=False)
@@ -32,8 +34,8 @@ class UserField(db.Model):
             value = int(value)
         except Exception:
             raise ValueError("user_type must be an integer")
-
-        if not UserType.query.get(value):
+        session = self.tenant_session or db.session
+        if not session.query(UserType).get(value):
             raise ValueError(f"user_type {value} does not exist in UserType table")
 
         return value
@@ -44,7 +46,8 @@ class UserField(db.Model):
             raise ValueError(f"{key} must be a non-empty string")
         value = value.strip()
 
-        existing_user_field = UserField.query.filter_by(field_name=value, user_type=self.user_type).first()
+        session = self.tenant_session or db.session
+        existing_user_field = session.query(UserField).filter_by(field_name=value, user_type=self.user_type).first()
         if existing_user_field and (not self.id or existing_user_field.id != self.id):
             raise ValueError(f"field_name '{key}' must be unique per user_type")
 

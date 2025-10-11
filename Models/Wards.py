@@ -1,12 +1,14 @@
 import enum
 from datetime import datetime
 from sqlalchemy.orm import validates
-from app_utils import db
+from extentions import db
 from Models.Department import Department
 from Models.Users import User
 
 class Ward(db.Model):
     __tablename__ = 'ward'
+
+    tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
@@ -36,7 +38,8 @@ class Ward(db.Model):
         if not value or not isinstance(value, str) or not value.strip():
             raise ValueError(f"{key} must be a non-empty string")
         value = value.strip()
-        existing = Ward.query.filter(Ward.name==value, Ward.id!=getattr(self, 'id', None)).first()
+        session = self.tenant_session or db.session
+        existing = session.query(Ward).filter(Ward.name==value, Ward.id!=getattr(self, 'id', None)).first()
         if existing:
             raise ValueError(f"{key} must be unique")
         return value
@@ -57,7 +60,8 @@ class Ward(db.Model):
     def validate_department_id(self, key, value):
         if not isinstance(value, int):
             raise ValueError(f"{key} must be a number")
-        if not Department.query.get(value):
+        session = self.tenant_session or db.session
+        if not session.query(Department).get(value):
             raise ValueError("Department not found")
         return value
 

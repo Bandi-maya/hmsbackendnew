@@ -3,7 +3,7 @@ from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
 from Serializers.LabTestSerializers import LabTestSerializer
 from Serializers.UserSerializers import UserSchema
-from app_utils import ma
+from extentions import db
 from Models.LabRequest import LabRequest
 
 

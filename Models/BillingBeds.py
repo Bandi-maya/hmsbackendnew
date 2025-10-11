@@ -2,12 +2,14 @@ from datetime import datetime
 from sqlalchemy.orm import validates
 
 from Models.WardBeds import WardBeds
-from app_utils import db
+from extentions import db
 from Models.Prescriptions import Prescriptions
 
 
 class BillingBeds(db.Model):
     __tablename__ = "billing_beds"
+
+    tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
     billing_id = db.Column(db.Integer, db.ForeignKey('billing.id'), nullable=False)
@@ -25,7 +27,8 @@ class BillingBeds(db.Model):
         except (TypeError, ValueError):
             raise ValueError(f"{key} must be a number")
 
-        existing = Prescriptions.query.get(value)
+        session = self.tenant_session or db.session
+        existing = session.query(Prescriptions).get(value)
         if not existing:
             raise ValueError(f"Billing not found")
         return value
@@ -35,7 +38,8 @@ class BillingBeds(db.Model):
         if not value or not isinstance(value, int):
             raise ValueError(f"{key} must be a number")
 
-        existing = WardBeds.query.get(value)
+        session = self.tenant_session or db.session
+        existing = session.query(WardBeds).get(value)
         if not existing:
             raise ValueError(f"Bed not found")
         return value

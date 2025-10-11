@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 from sqlalchemy.orm import validates
-from app_utils import db
+from extentions import db
 
 class Department(db.Model):
     __tablename__ = "department"
@@ -16,14 +16,15 @@ class Department(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @validates("name")
-    def validate_name(self, key, value):
+    def validate_name(self, key, value, session=None):
         if not value or not isinstance(value, str) or not value.strip():
             raise ValueError(f"{key} must be a non-empty string")
         value = value.strip()
 
-        existing = Department.query.filter(Department.name == value, Department.id != self.id).first()
-        if existing:
-            raise ValueError("name must be unique")
+        if session:
+            existing = session.query(Department).filter(Department.name == value, Department.id != self.id).first()
+            if existing:
+                raise ValueError("name must be unique")
         return value
 
     @validates("description")

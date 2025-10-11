@@ -1,5 +1,5 @@
 from Models.AccountInfo import AccountInfo
-from app_utils import ma
+from extentions import db
 
 class AccountInfoSerializers(ma.SQLAlchemyAutoSchema):
 

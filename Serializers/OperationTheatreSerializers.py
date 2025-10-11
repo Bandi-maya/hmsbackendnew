@@ -1,5 +1,5 @@
 from Models.OperationTheatre import OperationTheatre
-from app_utils import ma
+from extentions import ma
 
 class OperationTheatreSerializer(ma.SQLAlchemyAutoSchema):
     class Meta:

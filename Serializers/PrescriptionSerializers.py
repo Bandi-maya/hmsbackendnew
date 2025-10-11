@@ -1,6 +1,6 @@
 from Models.PrescritionSurgeries import PrescriptionSurgeries
 from Serializers.SurgerySerializers import SurgerySerializer
-from app_utils import ma
+from extentions import ma
 from Models.Prescriptions import Prescriptions
 from Models.PrescriptionMedicines import PrescriptionMedicines
 from Models.PrescriptionTests import PrescriptionTests

@@ -1,5 +1,5 @@
 from Serializers.WardBedsSerializers import WardBedsSerializer
-from app_utils import ma
+from extentions import ma
 from Models.Wards import Ward
 from Serializers.DepartmentSerializers import department_serializer
 from Serializers.UserSerializers import user_serializer

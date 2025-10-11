@@ -1,5 +1,5 @@
 from Models.Department import Department
-from app_utils import ma
+from extentions import ma
 
 class DepartmentSerializer(ma.SQLAlchemyAutoSchema):
     class Meta:

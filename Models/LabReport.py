@@ -1,5 +1,5 @@
 from datetime import datetime
-from app_utils import db
+from extentions import db
 from Models.LabRequest import LabRequest
 
 

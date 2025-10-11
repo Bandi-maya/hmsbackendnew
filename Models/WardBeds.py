@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 from sqlalchemy.orm import validates
-from app_utils import db
+from extentions import db
 from Models.Wards import Ward
 from Models.Users import User
 
@@ -13,6 +13,8 @@ class WardBedStatusEnum(enum.Enum):
 
 class WardBeds(db.Model):
     __tablename__ = 'ward_beds'
+
+    tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
     bed_no = db.Column(db.Integer, nullable=False, unique=True)
@@ -44,8 +46,8 @@ class WardBeds(db.Model):
     def validate_ward_type(self, key, value):
         if not value or not isinstance(value, int):
             raise ValueError(f"{key} must be a non-empty string")
-
-        existing = Ward.query.get(int(value))
+        session = self.tenant_session or db.session
+        existing = session.query(Ward).get(int(value))
         if not existing:
             raise ValueError(f"Ward {value} does not exist")
         return value

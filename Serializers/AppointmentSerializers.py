@@ -1,6 +1,6 @@
 from Models.Appointments import Appointment
 from Serializers.UserSerializers import user_serializer
-from app_utils import ma
+from extentions import ma
 
 class AppointmentSerializer(ma.SQLAlchemyAutoSchema):
     # doctor = ma.Nested(user_serializer, dump_only=True/)

@@ -1,34 +1,41 @@
+import json
+import logging
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
+from new import with_tenant_session_and_user
+from utils.logger import log_activity
 
 from Models.SurgeryDoctor import SurgeryDoctor
 from Serializers.SurgeryDoctorSerializers import surgery_doctor_serializer, surgery_doctor_serializers
-from app_utils import db
 
+logger = logging.getLogger(__name__)
 
 class SurgeryDoctorResource(Resource):
     method_decorators = [jwt_required()]
 
-    def get(self):
+    # ✅ GET single or all surgery-doctor assignments
+    @with_tenant_session_and_user
+    def get(self, tenant_session, **kwargs):
         try:
-            # Support getting one by id or all
             sd_id = request.args.get('id')
             if sd_id:
-                sd = SurgeryDoctor.query.get(sd_id)
-                if not sd:
+                record = tenant_session.query(SurgeryDoctor).get(sd_id)
+                if not record:
                     return {"error": "SurgeryDoctor record not found"}, 404
-                return surgery_doctor_serializer.dump(sd), 200
+                return surgery_doctor_serializer.dump(record), 200
 
-            records = SurgeryDoctor.query.all()
+            records = tenant_session.query(SurgeryDoctor).all()
             return surgery_doctor_serializers.dump(records), 200
 
-        except Exception as e:
-            print(e)
+        except Exception:
+            logger.exception("Error fetching SurgeryDoctor records")
             return {"error": "Internal error occurred"}, 500
 
-    def post(self):
+    # ✅ POST new assignment
+    @with_tenant_session_and_user
+    def post(self, tenant_session, **kwargs):
         try:
             json_data = request.get_json(force=True)
             if not json_data:
@@ -41,8 +48,9 @@ class SurgeryDoctorResource(Resource):
             if not surgery_id or not doctor_id or not role:
                 return {"error": "Missing required fields: surgery_id, doctor_id, role"}, 400
 
-            # Optional: check for duplicate assignment
-            existing = SurgeryDoctor.query.filter_by(surgery_id=surgery_id, doctor_id=doctor_id, role=role).first()
+            existing = tenant_session.query(SurgeryDoctor).filter_by(
+                surgery_id=surgery_id, doctor_id=doctor_id, role=role
+            ).first()
             if existing:
                 return {"error": "This doctor-role is already assigned to the surgery"}, 400
 
@@ -51,69 +59,75 @@ class SurgeryDoctorResource(Resource):
                 doctor_id=doctor_id,
                 role=role
             )
-            db.session.add(record)
-            db.session.commit()
+            tenant_session.add(record)
+            tenant_session.flush()
+            tenant_session.commit()
+
+            log_activity("CREATE_SURGERY_DOCTOR", details=json.dumps(surgery_doctor_serializer.dump(record)))
 
             return surgery_doctor_serializer.dump(record), 201
 
         except IntegrityError as ie:
-            db.session.rollback()
-            return {"error": str(ie.orig)}, 400
-
-        except Exception as e:
-            db.session.rollback()
-            print(e)
+            tenant_session.rollback()
+            return {"error": f"Database integrity error: {str(ie.orig)}"}, 400
+        except Exception:
+            tenant_session.rollback()
+            logger.exception("Error creating SurgeryDoctor record")
             return {"error": "Internal error occurred"}, 500
 
-    def put(self):
+    # ✅ PUT update assignment
+    @with_tenant_session_and_user
+    def put(self, tenant_session, **kwargs):
         try:
             json_data = request.get_json(force=True)
             sd_id = json_data.get('id')
             if not sd_id:
                 return {"error": "SurgeryDoctor ID required"}, 400
 
-            record = SurgeryDoctor.query.get(sd_id)
+            record = tenant_session.query(SurgeryDoctor).get(sd_id)
             if not record:
                 return {"error": "SurgeryDoctor record not found"}, 404
 
-            if 'surgery_id' in json_data:
-                record.surgery_id = json_data['surgery_id']
+            for field in ['surgery_id', 'doctor_id', 'role']:
+                if field in json_data:
+                    setattr(record, field, json_data[field])
 
-            if 'doctor_id' in json_data:
-                record.doctor_id = json_data['doctor_id']
-
-            if 'role' in json_data:
-                record.role = json_data['role']
-
-            db.session.commit()
+            tenant_session.commit()
+            log_activity("UPDATE_SURGERY_DOCTOR", details=json.dumps(surgery_doctor_serializer.dump(record)))
 
             return surgery_doctor_serializer.dump(record), 200
 
         except IntegrityError as ie:
-            db.session.rollback()
-            return {"error": str(ie.orig)}, 400
-
-        except Exception as e:
-            db.session.rollback()
-            print(e)
+            tenant_session.rollback()
+            return {"error": f"Database integrity error: {str(ie.orig)}"}, 400
+        except Exception:
+            tenant_session.rollback()
+            logger.exception("Error updating SurgeryDoctor record")
             return {"error": "Internal error occurred"}, 500
 
-    def delete(self):
+    # ✅ DELETE assignment
+    @with_tenant_session_and_user
+    def delete(self, tenant_session, **kwargs):
         try:
             sd_id = request.args.get('id')
             if not sd_id:
                 return {"error": "SurgeryDoctor ID required"}, 400
 
-            record = SurgeryDoctor.query.get(sd_id)
+            record = tenant_session.query(SurgeryDoctor).get(sd_id)
             if not record:
                 return {"error": "SurgeryDoctor record not found"}, 404
 
-            db.session.delete(record)
-            db.session.commit()
+            deleted_data = surgery_doctor_serializer.dump(record)
+            tenant_session.delete(record)
+            tenant_session.commit()
 
+            log_activity("DELETE_SURGERY_DOCTOR", details=json.dumps(deleted_data))
             return {"message": "SurgeryDoctor record deleted successfully"}, 200
 
-        except Exception as e:
-            db.session.rollback()
-            print(e)
+        except IntegrityError as ie:
+            tenant_session.rollback()
+            return {"error": f"Database integrity error: {str(ie.orig)}"}, 400
+        except Exception:
+            tenant_session.rollback()
+            logger.exception("Error deleting SurgeryDoctor record")
             return {"error": "Internal error occurred"}, 500

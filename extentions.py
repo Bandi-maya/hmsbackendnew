@@ -1,6 +1,4 @@
-# extensions.py
-# This file is used to initialize extensions to avoid circular imports.
-
+# This file breaks circular imports by creating extension objects here.
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_mail import Mail

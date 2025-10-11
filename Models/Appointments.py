@@ -1,6 +1,8 @@
 from datetime import datetime, time
+
+from flask import session
 from sqlalchemy.orm import validates
-from app_utils import db
+from extentions import db
 from Models.Users import User
 import enum
 
@@ -12,6 +14,8 @@ class AppointmentStatusTypeEnum(enum.Enum):
     
 class Appointment(db.Model):
     __tablename__ = "appointment"
+
+    tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -39,8 +43,9 @@ class Appointment(db.Model):
     def validate_user_id(self, key, value):
         if not isinstance(value, int) or value <= 0:
             raise ValueError(f"{key} must be a positive integer")
-        
-        user = User.query.get(value)
+
+        session = self.tenant_session or db.session
+        user = session.query(User).get(value)
         if not user:
             string = "Patient" if key == "patient_id" else "Doctor"
             raise ValueError(f"{string} not found.")
@@ -66,7 +71,9 @@ class Appointment(db.Model):
                 raise ValueError(f"{key} must be a time string in 'HH:MM' format")
         elif not isinstance(value, time):
             raise ValueError(f"{key} must be a time object or time string in 'HH:MM' format")
-        appointment_records = Appointment.query.filter_by(appointment_date=self.appointment_date, doctor_id=self.doctor_id).all()
+
+        session = self.tenant_session or db.session
+        appointment_records = session.query(Appointment).filter_by(appointment_date=self.appointment_date, doctor_id=self.doctor_id).all()
         for record in appointment_records:
             if record.appointment_start_time and record.appointment_end_time:
                 if record.appointment_start_time <= value <= record.appointment_end_time:

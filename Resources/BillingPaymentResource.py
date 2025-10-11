@@ -1,24 +1,22 @@
+import json
+import logging
 from flask import request
 from flask_restful import Resource
+from sqlalchemy.exc import IntegrityError
+from new import with_tenant_session_and_user
+from utils.logger import log_activity
 
-from Serializers.PaymentsSerializers import payment_serializers
-from app_utils import db
 from Models.Billing import Billing
 from Models.Payments import Payment
+from Serializers.PaymentsSerializers import payment_serializers
+
+logger = logging.getLogger(__name__)
 
 class BillingPaymentResource(Resource):
-    def post(self, billing_id):
-        """
-        Create a new payment for a billing record
-        Endpoint: POST /billing/<int:billing_id>/payments
-        Body: {
-            "amount": 100.0,
-            "method": "cash",
-            "transaction_ref": "TXN123456" (optional)
-        }
-        """
+    # ✅ POST a new payment
+    @with_tenant_session_and_user
+    def post(self, tenant_session, billing_id, **kwargs):
         data = request.get_json()
-
         amount = data.get("amount")
         method = data.get("method")
         transaction_ref = data.get("transaction_ref")
@@ -26,12 +24,13 @@ class BillingPaymentResource(Resource):
         if not amount or not method:
             return {"error": "Amount and method are required fields."}, 400
 
-        billing = Billing.query.get_or_404(billing_id)
+        billing = tenant_session.query(Billing).get(billing_id)
+        if not billing:
+            return {"error": f"Billing with ID {billing_id} not found."}, 404
 
         remaining = billing.total_amount - (billing.amount_paid or 0)
         if remaining <= 0:
             return {"error": "Billing already fully paid."}, 400
-
         if amount > remaining:
             return {"error": f"Payment amount ({amount}) exceeds remaining balance ({remaining})."}, 400
 
@@ -42,12 +41,22 @@ class BillingPaymentResource(Resource):
                 method=method,
                 transaction_ref=transaction_ref
             )
-
-            db.session.add(payment)
-            db.session.flush()  # So we can update billing before commit
+            tenant_session.add(payment)
+            tenant_session.flush()
 
             billing.update_status_based_on_payments()
-            db.session.commit()
+            tenant_session.commit()
+
+            log_activity("CREATE_BILLING_PAYMENT", details=json.dumps({
+                "billing_id": billing.id,
+                "payment": {
+                    "id": payment.id,
+                    "amount": payment.amount,
+                    "method": payment.method,
+                    "transaction_ref": payment.transaction_ref,
+                    "timestamp": payment.timestamp.isoformat()
+                }
+            }))
 
             return {
                 "message": "Payment recorded successfully.",
@@ -63,34 +72,43 @@ class BillingPaymentResource(Resource):
                 }
             }, 201
 
-        except Exception as e:
-            db.session.rollback()
-            return {"message": str(e)}, 500
+        except IntegrityError as ie:
+            tenant_session.rollback()
+            return {"error": f"Database integrity error: {str(ie.orig)}"}, 400
+        except Exception:
+            tenant_session.rollback()
+            logger.exception("Error recording payment")
+            return {"error": "Internal error occurred"}, 500
 
-    def get(self, billing_id=None):
-        """
-        Get all payments for a billing record
-        Endpoint: GET /billing/<int:billing_id>/payments
-        """
-        if billing_id:
-            billing = Billing.query.get_or_404(billing_id)
-            payments = billing.payments
+    # ✅ GET payments for a billing record
+    @with_tenant_session_and_user
+    def get(self, tenant_session, billing_id=None, **kwargs):
+        try:
+            if billing_id:
+                billing = tenant_session.query(Billing).get(billing_id)
+                if not billing:
+                    return {"error": f"Billing with ID {billing_id} not found."}, 404
 
-            return {
-                "billing_id": billing.id,
-                "total_amount": billing.total_amount,
-                "amount_paid": billing.amount_paid,
-                "status": billing.status,
-                "payments": [
-                    {
-                        "id": p.id,
-                        "amount": p.amount,
-                        "method": p.method,
-                        "transaction_ref": p.transaction_ref,
-                        "timestamp": p.timestamp.isoformat()
-                    }
-                    for p in payments
-                ]
-            }, 200
+                payments = billing.payments
+                return {
+                    "billing_id": billing.id,
+                    "total_amount": billing.total_amount,
+                    "amount_paid": billing.amount_paid,
+                    "status": billing.status,
+                    "payments": [
+                        {
+                            "id": p.id,
+                            "amount": p.amount,
+                            "method": p.method,
+                            "transaction_ref": p.transaction_ref,
+                            "timestamp": p.timestamp.isoformat()
+                        } for p in payments
+                    ]
+                }, 200
 
-        return payment_serializers.dump(Payment.query.all())
+            all_payments = tenant_session.query(Payment).all()
+            return payment_serializers.dump(all_payments), 200
+
+        except Exception:
+            logger.exception("Error fetching payments")
+            return {"error": "Internal error occurred"}, 500

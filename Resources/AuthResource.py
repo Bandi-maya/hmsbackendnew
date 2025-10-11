@@ -4,10 +4,12 @@ from flask_restful import Resource
 
 from Models.Users import User
 from Serializers.UserSerializers import user_serializer
+from new import with_tenant_session_and_user
 
 
 class AuthResource(Resource):
-    def post(self):
+    @with_tenant_session_and_user
+    def post(self, db_session):
         data = request.get_json(force=True)
         username = data.get('username')
         password = data.get('password')
@@ -15,7 +17,7 @@ class AuthResource(Resource):
         if not username or not password:
             return {'msg': 'Missing username or password'}, 400
 
-        user = User.query.filter_by(username=username).first()
+        user = db_session.query(User).filter_by(username=username).first()
         if not user:
             return {'msg': 'Bad username or password'}, 401
         user = user_serializer.dump(user)

@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy.orm import validates
-from app_utils import db
+from extentions import db
 from Models.Medicine import Medicine
 from Models.Users import User  # <<< Add this import!
 

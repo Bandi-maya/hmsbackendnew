@@ -1,6 +1,6 @@
 from Models.BillingBeds import BillingBeds
 from Models.BillingSurgeries import BillingSurgeries
-from app_utils import ma
+from extentions import ma
 from Models.Billing import Billing
 from Models.BillingMedicines import BillingMedicines
 from Models.BillingTests import BillingTests

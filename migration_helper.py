@@ -1,139 +1,29 @@
-# from flask import current_app
-# from flask_migrate import upgrade
-# from sqlalchemy import create_engine, text
-# from sqlalchemy.orm import sessionmaker
-# import os
-#
-# from Models.Department import Department
-# from Models.UserField import UserField, FieldTypeEnum
-# from Models.UserType import UserType
-# from Models.Users import User
-#
-#
-# def run_tenant_migrations(db_uri, sub_domain, name):
-#     """
-#     Runs migrations on a tenant DB and inserts a default user.
-#     """
-#
-#     app = current_app._get_current_object()
-#
-#     original_uri = app.config.get('SQLALCHEMY_DATABASE_URI')
-#     original_binds = app.config.get('SQLALCHEMY_BINDS')
-#
-#     migrations_dir = os.path.join(app.root_path, 'migrations')
-#     if not os.path.exists(migrations_dir):
-#         raise Exception("Migrations directory not found. Run 'flask db init' first.")
-#
-#     try:
-#         # Point SQLAlchemy to the tenant DB
-#         app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
-#         app.config.pop('SQLALCHEMY_BINDS', None)
-#
-#         print(f"Running migrations for tenant DB: {db_uri}")
-#
-#         alembic_cfg = Config(alembic_ini_path)
-#         alembic_cfg.set_main_option('sqlalchemy.url', db_uri)
-#
-#         # Run Alembic upgrade to head on tenant DB
-#         command.upgrade(alembic_cfg, 'head')
-#         print("Migrations completed successfully.")
-#         #
-#         # # --- Create all user types ---
-#         # session.execute(text("""
-#         #     INSERT INTO user_type (type, description)
-#         #     VALUES
-#         #         ('Admin', 'Administrator'),
-#         #         ('Doctor', 'Medical Doctor'),
-#         #         ('Patient', 'Patient'),
-#         #         ('Nurse', 'Nursing Staff'),
-#         #         ('Receptionist', 'Front Desk'),
-#         #         ('LabTechnician', 'Lab Technician'),
-#         #         ('Pharmacist', 'Pharmacy Staff');
-#         # """))
-#         #
-#         # session.execute(text("""
-#         #     INSERT INTO user_field (user_type, field_name, field_type, is_mandatory)
-#         #     VALUES
-#         #         (2, 'first_name', 'STRING', TRUE),
-#         #         (2, 'last_name', 'STRING', TRUE),
-#         #         (2, 'experience', 'INTEGER', FALSE),
-#         #         (2, 'specialization', 'STRING', TRUE),
-#         #         (3, 'first_name', 'STRING', TRUE),
-#         #         (3, 'last_name', 'STRING', TRUE),
-#         #         (3, 'disease', 'STRING', FALSE),
-#         #         (3, 'notes', 'STRING', FALSE),
-#         #         (3, 'assigned_to_doctor', 'INTEGER', FALSE),
-#         #         (4, 'first_name', 'STRING', TRUE),
-#         #         (4, 'last_name', 'STRING', TRUE),
-#         #         (5, 'first_name', 'STRING', TRUE),
-#         #         (5, 'last_name', 'STRING', TRUE),
-#         #         (6, 'first_name', 'STRING', TRUE),
-#         #         (6, 'last_name', 'STRING', TRUE),
-#         #         (7, 'first_name', 'STRING', TRUE),
-#         #         (7, 'last_name', 'STRING', TRUE);
-#         # """))
-#         #
-#         # # Insert Department (returning the new id)
-#         # result = session.execute(text("""
-#         #     INSERT INTO department (name, description)
-#         #     VALUES ('Admin Department', 'Created for admin')
-#         #     RETURNING id
-#         # """))
-#         # department_id = result.scalar_one()  # Get the new department ID
-#         #
-#         # # Check if default user already exists
-#         # existing_user = session.execute(text("""
-#         #     SELECT 1 FROM "user" WHERE email = :email LIMIT 1
-#         # """), {"email": "admin@tenant.com"}).scalar()
-#
-#         # if not existing_user:
-#             # Insert default admin user
-#             # session.execute(text("""
-#             #     INSERT INTO "user" (
-#             #         name, phone_no, date_of_birth, age, gender, address, blood_type,
-#             #         department_id, user_type_id, email, username, password
-#             #     )
-#             #     VALUES (
-#             #         :name, :phone_no, :date_of_birth, :age, :gender, :address, :blood_type,
-#             #         :department_id, :user_type_id, :email, :username, :password
-#             #     )
-#             # """), {
-#             #     "name": "Admin",
-#             #     "phone_no": "123456",
-#             #     "date_of_birth": "2000-10-10",  # Prefer ISO format for dates
-#             #     "age": 20,
-#             #     "gender": "MALE",
-#             #     "address": "45677",
-#             #     "blood_type": "A+",
-#             #     "department_id": department_id,
-#             #     "user_type_id": 1,
-#             #     "email": f"{name}@{sub_domain}.com",
-#             #     "username": f"{name}@{sub_domain}.com",
-#             #     "password": "admin123",  # ⚠️ Remember to hash passwords in production!
-#             # })
-#         session.commit()
-#         #     print("✅ Default admin user created.")
-#         # else:
-#         #     print("ℹ️ Default admin user already exists.")
-#
-#     except Exception as e:
-#         print(f"❌ Migration or user creation failed: {e}")
-#         raise
-#     finally:
-#         print("--- Restoring original DB config ---")
-#         app.config['SQLALCHEMY_DATABASE_URI'] = original_uri
-#         if original_binds:
-#             app.config['SQLALCHEMY_BINDS'] = original_binds
+import os
 from flask import current_app
 from alembic.config import Config
 from alembic import command
-import os
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from werkzeug.security import generate_password_hash
+
+from Models.Department import Department
+from Models.UserField import FieldTypeEnum, UserField
+from Models.UserType import UserType
+from Models.Users import User
+
 
 def run_tenant_migrations(db_uri, sub_domain, name):
+    """
+    Runs Alembic migrations for a tenant DB and sets up default data.
+
+    Args:
+        db_uri (str): SQLAlchemy URI of the tenant database.
+        sub_domain (str): Subdomain for the tenant.
+        name (str): Tenant name.
+    """
     app = current_app._get_current_object()
 
+    # Store original DB config to restore later
     original_uri = app.config.get('SQLALCHEMY_DATABASE_URI')
     original_binds = app.config.get('SQLALCHEMY_BINDS')
 
@@ -145,6 +35,9 @@ def run_tenant_migrations(db_uri, sub_domain, name):
     if not os.path.exists(alembic_ini_path):
         raise Exception(f"alembic.ini not found at {alembic_ini_path}")
 
+    engine = None
+    session = None
+
     try:
         # Override app DB config temporarily
         app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
@@ -152,21 +45,102 @@ def run_tenant_migrations(db_uri, sub_domain, name):
 
         print(f"Running migrations for tenant DB: {db_uri}")
 
+        # --- Run Alembic migrations ---
         alembic_cfg = Config(alembic_ini_path)
         alembic_cfg.set_main_option("script_location", migrations_dir)
-
         alembic_cfg.set_main_option('sqlalchemy.url', db_uri)
-
-        # Run Alembic upgrade to head on tenant DB
         command.upgrade(alembic_cfg, 'head')
-        print("Migrations completed successfully.")
+        print("✅ Migrations completed successfully.")
 
-        # Now do your default user insertion logic here...
+        # --- Setup SQLAlchemy engine and session for tenant DB ---
+        engine = create_engine(db_uri)
+        TenantSession = sessionmaker(bind=engine)
+        session = TenantSession()
+
+        # --- Create default User Types ---
+        user_types = [
+            {"type": "Admin", "description": "Administrator"},
+            {"type": "Doctor", "description": "Medical Doctor"},
+            {"type": "Patient", "description": "Patient"},
+            {"type": "Nurse", "description": "Nursing Staff"},
+            {"type": "Receptionist", "description": "Front Desk"},
+            {"type": "LabTechnician", "description": "Lab Technician"},
+            {"type": "Pharmacist", "description": "Pharmacy Staff"},
+        ]
+
+        user_type_map = {}
+        for ut in user_types:
+            existing = session.query(UserType).filter(UserType.type.ilike(ut["type"])).first()
+            if not existing:
+                user_type = UserType(type=ut["type"], description=ut["description"])
+                user_type.validate_type('type', ut['type'], session=session)
+                session.add(user_type)
+                session.flush()
+                user_type_map[ut["type"]] = user_type.id
+            else:
+                user_type_map[ut["type"]] = existing.id
+        session.commit()
+        print("✅ Default user types created.")
+
+        # --- Create default Department ---
+        dept_name = "Admin Department"
+        department = session.query(Department).filter_by(name=dept_name).first()
+        if not department:
+            department = Department(name=dept_name, description="Created for admin")
+            department.validate_name("name", dept_name, session=session)
+            session.add(department)
+            session.commit()
+        print("✅ Default department created.")
+
+        # --- Create User Fields ---
+        fields = [
+            {"user_type": user_type_map["Doctor"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Doctor"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Doctor"], "field_name": "specialization", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Patient"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Patient"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Patient"], "field_name": "disease", "field_type": FieldTypeEnum.STRING, "is_mandatory": False},
+        ]
+        for f in fields:
+            existing = session.query(UserField).filter_by(user_type=f["user_type"], field_name=f["field_name"]).first()
+            if not existing:
+                UserField.tenant_session = session
+                session.add(UserField(**f))
+        session.commit()
+        print("✅ Default user fields created.")
+
+        # --- Create default Admin User ---
+        admin_email = f"admin@{sub_domain}.com"
+        existing_user = session.query(User).filter_by(email=admin_email).first()
+        if not existing_user:
+            User.tenant_session = session
+            admin_user = User(
+                name="Admin",
+                username=admin_email,
+                phone_no=546789,
+                address={"h-no": "17-75/a"},
+                age=1,
+                email=admin_email,
+                password=generate_password_hash("admin123"),
+                department_id=department.id,
+                user_type_id=user_type_map["Admin"],
+                date_of_birth="2000-10-10",
+                gender="MALE"
+            )
+            session.add(admin_user)
+            session.commit()
+            print("✅ Default admin user created.")
+        else:
+            print("ℹ️ Default admin user already exists.")
 
     except Exception as e:
-        print(f"Migration or user creation failed: {e}")
+        print(f"❌ Migration or user creation failed: {e}")
         raise
     finally:
+        if session:
+            session.close()
+        if engine:
+            engine.dispose()
         print("Restoring original DB config")
         app.config['SQLALCHEMY_DATABASE_URI'] = original_uri
         if original_binds:

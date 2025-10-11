@@ -1,4 +1,4 @@
-from app_utils import ma
+from extentions import ma
 from Models.Medicine import Medicine
 
 class MedicineSerializer(ma.SQLAlchemyAutoSchema):

@@ -1,5 +1,5 @@
 from sqlalchemy.dialects.postgresql import JSONB
-from app_utils import db
+from extentions import db
 
 class UserExtraFields(db.Model):
     __tablename__ = "user_extra_fields"

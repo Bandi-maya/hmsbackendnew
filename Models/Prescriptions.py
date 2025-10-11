@@ -1,12 +1,14 @@
 from datetime import datetime
 from sqlalchemy.orm import validates
-from app_utils import db
+from extentions import db
 from Models.Users import User
 # from Models.PrescriptionMedicines import PrescriptionMedicines
 # from Models.PrescriptionTests import PrescriptionTests
 
 class Prescriptions(db.Model):
     __tablename__ = "prescriptions"
+
+    tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -26,7 +28,8 @@ class Prescriptions(db.Model):
         if not value or not isinstance(value, int):
             raise ValueError(f"{key} must be a number")
 
-        existing = User.query.get(value)
+        session = self.tenant_session or db.session
+        existing = session.query(User).get(value)
         if not existing:
             raise ValueError(f"{key} not found")
         return value

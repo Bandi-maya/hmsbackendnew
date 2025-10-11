@@ -1,10 +1,12 @@
 from datetime import datetime
 from sqlalchemy.orm import validates
-from app_utils import db
+from extentions import db
 
 
 class Medicine(db.Model):
     __tablename__ = 'medicine'
+
+    tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
@@ -23,7 +25,9 @@ class Medicine(db.Model):
         if not value or not value.strip():
             raise ValueError("Medicine name must be a non-empty string")
         value = value.strip()
-        existing = Medicine.query.filter(Medicine.name==value, Medicine.id!=getattr(self, 'id', None)).first()
+
+        session = self.tenant_session or db.session
+        existing = session.query(Medicine).filter(Medicine.name==value, Medicine.id!=getattr(self, 'id', None)).first()
         if existing:
             raise ValueError("Medicine name must be unique")
         return value

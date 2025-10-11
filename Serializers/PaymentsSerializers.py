@@ -1,6 +1,6 @@
 from Models.Payments import Payment
 from Models.OperationTheatre import OperationTheatre
-from app_utils import ma
+from extentions import ma
 
 class PaymentSerializer(ma.SQLAlchemyAutoSchema):
     class Meta:

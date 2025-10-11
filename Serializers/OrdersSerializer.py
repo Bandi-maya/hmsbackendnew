@@ -1,7 +1,7 @@
 from Models.Orders import Orders
 from Serializers.PurchaseOrderSerializer import purchase_order_serializer
 from Serializers.UserSerializers import user_serializer
-from app_utils import ma
+from extentions import ma
 
 class OrdersSerializer(ma.SQLAlchemyAutoSchema):
     user = ma.Nested(user_serializer, dump_only=True)

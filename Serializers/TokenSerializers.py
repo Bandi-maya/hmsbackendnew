@@ -1,7 +1,7 @@
 from Models.Tokens import Token
 from Serializers.UserSerializers import UserSchema
 
-from app_utils import ma
+from extentions import ma
 
 class TokenSerializer(ma.SQLAlchemyAutoSchema):
     doctor = ma.Nested(UserSchema)

@@ -1,7 +1,7 @@
 from marshmallow import fields
 
 from Serializers.LabRequestSerializers import LabRequestSerializer
-from app_utils import ma
+from extentions import ma
 from Models.LabReport import LabReport
 
 
