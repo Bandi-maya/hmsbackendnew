@@ -53,85 +53,85 @@ def run_tenant_migrations(db_uri, sub_domain, name):
         print("✅ Migrations completed successfully.")
 
         # --- Setup SQLAlchemy engine and session for tenant DB ---
-        engine = create_engine(db_uri)
-        TenantSession = sessionmaker(bind=engine)
-        session = TenantSession()
-
-        # --- Create default User Types ---
-        user_types = [
-            {"type": "Admin", "description": "Administrator"},
-            {"type": "Doctor", "description": "Medical Doctor"},
-            {"type": "Patient", "description": "Patient"},
-            {"type": "Nurse", "description": "Nursing Staff"},
-            {"type": "Receptionist", "description": "Front Desk"},
-            {"type": "LabTechnician", "description": "Lab Technician"},
-            {"type": "Pharmacist", "description": "Pharmacy Staff"},
-        ]
-
-        user_type_map = {}
-        for ut in user_types:
-            existing = session.query(UserType).filter(UserType.type.ilike(ut["type"])).first()
-            if not existing:
-                user_type = UserType(type=ut["type"], description=ut["description"])
-                user_type.validate_type('type', ut['type'], session=session)
-                session.add(user_type)
-                session.flush()
-                user_type_map[ut["type"]] = user_type.id
-            else:
-                user_type_map[ut["type"]] = existing.id
-        session.commit()
-        print("✅ Default user types created.")
-
-        # --- Create default Department ---
-        dept_name = "Admin Department"
-        department = session.query(Department).filter_by(name=dept_name).first()
-        if not department:
-            department = Department(name=dept_name, description="Created for admin")
-            department.validate_name("name", dept_name, session=session)
-            session.add(department)
-            session.commit()
-        print("✅ Default department created.")
-
-        # --- Create User Fields ---
-        fields = [
-            {"user_type": user_type_map["Doctor"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
-            {"user_type": user_type_map["Doctor"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
-            {"user_type": user_type_map["Doctor"], "field_name": "specialization", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
-            {"user_type": user_type_map["Patient"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
-            {"user_type": user_type_map["Patient"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
-            {"user_type": user_type_map["Patient"], "field_name": "disease", "field_type": FieldTypeEnum.STRING, "is_mandatory": False},
-        ]
-        for f in fields:
-            existing = session.query(UserField).filter_by(user_type=f["user_type"], field_name=f["field_name"]).first()
-            if not existing:
-                UserField.tenant_session = session
-                session.add(UserField(**f))
-        session.commit()
-        print("✅ Default user fields created.")
-
-        # --- Create default Admin User ---
-        admin_email = f"admin@{sub_domain}.com"
-        existing_user = session.query(User).filter_by(email=admin_email).first()
-        if not existing_user:
-            User.tenant_session = session
-            admin_user = User(
-                name="Admin",
-                username=admin_email,
-                phone_no=546789,
-                address={"h-no": "17-75/a"},
-                age=1,
-                email=admin_email,
-                password=generate_password_hash("admin123"),
-                department_id=department.id,
-                user_type_id=user_type_map["Admin"],
-                date_of_birth="2000-10-10",
-                gender="MALE"
-            )
-            session.add(admin_user)
-            session.commit()
-            print("✅ Default admin user created.")
-        else:
-            print("ℹ️ Default admin user already exists.")
+        # engine = create_engine(db_uri)
+        # TenantSession = sessionmaker(bind=engine)
+        # session = TenantSession()
+        #
+        # # --- Create default User Types ---
+        # user_types = [
+        #     {"type": "Admin", "description": "Administrator"},
+        #     {"type": "Doctor", "description": "Medical Doctor"},
+        #     {"type": "Patient", "description": "Patient"},
+        #     {"type": "Nurse", "description": "Nursing Staff"},
+        #     {"type": "Receptionist", "description": "Front Desk"},
+        #     {"type": "LabTechnician", "description": "Lab Technician"},
+        #     {"type": "Pharmacist", "description": "Pharmacy Staff"},
+        # ]
+        #
+        # user_type_map = {}
+        # for ut in user_types:
+        #     existing = session.query(UserType).filter(UserType.type.ilike(ut["type"])).first()
+        #     if not existing:
+        #         user_type = UserType(type=ut["type"], description=ut["description"])
+        #         user_type.validate_type('type', ut['type'], session=session)
+        #         session.add(user_type)
+        #         session.flush()
+        #         user_type_map[ut["type"]] = user_type.id
+        #     else:
+        #         user_type_map[ut["type"]] = existing.id
+        # session.commit()
+        # print("✅ Default user types created.")
+        #
+        # # --- Create default Department ---
+        # dept_name = "Admin Department"
+        # department = session.query(Department).filter_by(name=dept_name).first()
+        # if not department:
+        #     department = Department(name=dept_name, description="Created for admin")
+        #     department.validate_name("name", dept_name, session=session)
+        #     session.add(department)
+        #     session.commit()
+        # print("✅ Default department created.")
+        #
+        # # --- Create User Fields ---
+        # fields = [
+        #     {"user_type": user_type_map["Doctor"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+        #     {"user_type": user_type_map["Doctor"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+        #     {"user_type": user_type_map["Doctor"], "field_name": "specialization", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+        #     {"user_type": user_type_map["Patient"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+        #     {"user_type": user_type_map["Patient"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+        #     {"user_type": user_type_map["Patient"], "field_name": "disease", "field_type": FieldTypeEnum.STRING, "is_mandatory": False},
+        # ]
+        # for f in fields:
+        #     existing = session.query(UserField).filter_by(user_type=f["user_type"], field_name=f["field_name"]).first()
+        #     if not existing:
+        #         UserField.tenant_session = session
+        #         session.add(UserField(**f))
+        # session.commit()
+        # print("✅ Default user fields created.")
+        #
+        # # --- Create default Admin User ---
+        # admin_email = f"admin@{sub_domain}.com"
+        # existing_user = session.query(User).filter_by(email=admin_email).first()
+        # if not existing_user:
+        #     User.tenant_session = session
+        #     admin_user = User(
+        #         name="Admin",
+        #         username=admin_email,
+        #         phone_no=546789,
+        #         address={"h-no": "17-75/a"},
+        #         age=1,
+        #         email=admin_email,
+        #         password=generate_password_hash("admin123"),
+        #         department_id=department.id,
+        #         user_type_id=user_type_map["Admin"],
+        #         date_of_birth="2000-10-10",
+        #         gender="MALE"
+        #     )
+        #     session.add(admin_user)
+        #     session.commit()
+        #     print("✅ Default admin user created.")
+        # else:
+        #     print("ℹ️ Default admin user already exists.")
 
     except Exception as e:
         print(f"❌ Migration or user creation failed: {e}")

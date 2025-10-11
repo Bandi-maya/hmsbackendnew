@@ -1,8 +1,8 @@
 """added tables
 
-Revision ID: 3ad9527b0d5c
+Revision ID: 3a8064a45cdb
 Revises: 
-Create Date: 2025-10-12 04:35:20.198601
+Create Date: 2025-10-12 05:16:09.104784
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '3ad9527b0d5c'
+revision = '3a8064a45cdb'
 down_revision = None
 branch_labels = None
 depends_on = None
