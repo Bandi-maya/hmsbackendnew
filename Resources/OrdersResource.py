@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 from flask import request
 from flask_jwt_extended import jwt_required
@@ -117,7 +118,9 @@ class OrdersResource(Resource):
                     tenant_session.rollback()
                     return {"error": f"No stock found for Medicine ID {medicine_id}"}, 404
 
-                total_amount += (medicine_stock.price or 0) * quantity
+                print(medicine_stock.price, quantity)
+
+                total_amount += (Decimal(medicine_stock.price) if medicine_stock.price else Decimal('0')) * int(quantity)
 
                 PurchaseOrder.tenant_session = tenant_session
                 purchase_item = PurchaseOrder(

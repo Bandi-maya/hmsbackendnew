@@ -21,7 +21,7 @@ class UserTypesResource(Resource):
             # 🔹 Optional filter
             name = request.args.get("name")
 
-            query = tenant_session.query(UserType).filter_by(is_active=True)
+            query = tenant_session.query(UserType).filter_by(is_deleted=False)
 
             if name:
                 query = query.filter(UserType.type.ilike(f"%{name}%"))

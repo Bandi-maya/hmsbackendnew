@@ -1,6 +1,7 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 import logging
 
@@ -22,6 +23,7 @@ class MedicalRecordsResource(Resource):
         try:
             # 🔹 Base query
             query = tenant_session.query(MedicalRecords)
+            query = query.join(User).filter(~User.is_deleted)
             total_records = query.count()
 
             # 🔹 Pagination params (optional)

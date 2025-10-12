@@ -33,7 +33,7 @@ class UsersResource(Resource):
         try:
             user_type = g.user.get('user_type', {}).get('type') if hasattr(g, "user") and g.user else None
 
-            query = tenant_session.query(User)
+            query = tenant_session.query(User).filter_by(is_deleted=False)
             user_id = request.args.get('user_id', type=int)
             department_id = request.args.get('department_id')
             req_user_type = request.args.get('user_type')
