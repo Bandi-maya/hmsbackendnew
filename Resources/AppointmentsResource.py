@@ -22,8 +22,9 @@ class AppointmentsResource(Resource):
             doctor_id = request.args.get("doctor_id")
             appointment_date = request.args.get("date")
 
-            query = tenant_session.query(Appointment)
+            query = tenant_session.query(Appointment).filter_by(is_deleted=False)
 
+            # 🔹 Filters
             if doctor_id:
                 query = query.filter_by(doctor_id=doctor_id)
 
@@ -31,11 +32,32 @@ class AppointmentsResource(Resource):
                 try:
                     date_obj = datetime.strptime(appointment_date, "%Y-%m-%d")
                     query = query.filter(Appointment.appointment_date == date_obj)
-                except Exception:
+                except ValueError:
                     return {"error": "Invalid date format. Use YYYY-MM-DD"}, 400
 
-            appointments = query.filter_by(is_deleted=False).all()
-            return AppointmentSerializers.dump(appointments, many=True), 200
+            # 🔹 Pagination
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+            total_records = query.count()
+
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                page = 1
+                limit = total_records
+
+            appointments = query.all()
+            result = AppointmentSerializers.dump(appointments, many=True)
+
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
 
         except Exception:
             logger.exception("Error fetching appointments")

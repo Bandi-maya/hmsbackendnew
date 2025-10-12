@@ -22,8 +22,42 @@ class PurchaseOrdersResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            orders = tenant_session.query(PurchaseOrder).all()
-            return purchase_order_serializers.dump(orders), 200
+            # 🔹 Pagination params
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            # 🔹 Base query
+            query = tenant_session.query(PurchaseOrder)
+            total_records = query.count()
+
+            # 🔹 Apply pagination if both page and limit are provided
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                page = 1
+                limit = total_records
+
+            orders = query.all()
+            result = purchase_order_serializers.dump(orders)
+
+            # 🔹 Log activity
+            log_activity("GET_PURCHASE_ORDERS", details=json.dumps({
+                "count": len(result),
+                "page": page,
+                "limit": limit
+            }))
+
+            # 🔹 Structured response
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
+
         except Exception:
             logger.exception("Error fetching purchase orders")
             return {"error": "Internal error occurred"}, 500

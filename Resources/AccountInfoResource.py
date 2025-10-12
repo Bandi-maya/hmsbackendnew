@@ -22,12 +22,11 @@ UPLOAD_FOLDER = "uploads"
 
 class AccountInfoResource(Resource):
     # method_decorators = [jwt_required()]
-
     def get(self):
         """
         Retrieves one or all tenant account info records.
         If an 'id' is provided in query params, it fetches a single tenant.
-        Otherwise, it returns a list of all tenants.
+        Otherwise, it returns a paginated list of tenants.
         """
         try:
             account_id = request.args.get('id')
@@ -35,8 +34,7 @@ class AccountInfoResource(Resource):
                 account = AccountInfo.query.get(account_id)
                 if not account:
                     return {"message": "Account info not found for the given ID."}, 404
-                # data = account_info_serializer.dump(account)
-                # For demonstration if serializer is not set up:
+
                 data = {
                     "id": account.id,
                     "name": account.name,
@@ -45,18 +43,40 @@ class AccountInfoResource(Resource):
                                         _external=True) if account.logo_url else None
                 }
                 return data, 200
+
+            # 🔹 Pagination params
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            query = AccountInfo.query
+            total_records = query.count()
+
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
             else:
-                accounts = AccountInfo.query.all()
-                # data = account_info_serializer.dump(accounts, many=True)
-                # For demonstration if serializer is not set up:
-                data = [{
-                    "id": acc.id,
-                    "name": acc.name,
-                    "subdomain": acc.subdomain,
-                    "logo_url": url_for('uploaded_file', filename=os.path.basename(acc.logo_url),
-                                        _external=True) if acc.logo_url else None
-                } for acc in accounts]
-                return data, 200
+                # If no pagination, return all records
+                page = 1
+                limit = total_records
+
+            accounts = query.all()
+            data = [{
+                "id": acc.id,
+                "name": acc.name,
+                "subdomain": acc.subdomain,
+                "logo_url": url_for('uploaded_file', filename=os.path.basename(acc.logo_url),
+                                    _external=True) if acc.logo_url else None
+            } for acc in accounts]
+
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": data
+            }, 200
+
         except Exception as e:
             print(e)
             return {"error": "An internal error occurred"}, 500

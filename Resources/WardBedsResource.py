@@ -23,10 +23,59 @@ class WardBedsResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            wards = tenant_session.query(WardBeds).all()
-            result = ward_beds_serializers.dump(wards)
-            log_activity("GET_WARDS_BEDS", details=json.dumps({"count": len(result)}))
-            return result, 200
+            # 🔹 Optional filters
+            ward_id = request.args.get("ward_id", type=int)
+            bed_number = request.args.get("bed_number")
+            status = request.args.get("status")
+
+            query = tenant_session.query(WardBeds)
+
+            # 🔹 Apply filters
+            if ward_id:
+                query = query.filter(WardBeds.ward_id == ward_id)
+
+            if bed_number:
+                query = query.filter(WardBeds.bed_number.ilike(f"%{bed_number}%"))
+
+            if status:
+                query = query.filter(WardBeds.status.ilike(f"%{status}%"))
+
+            total_records = query.count()
+
+            # 🔹 Pagination params (optional)
+            page = request.args.get("page", type=int) or 1
+            limit = request.args.get("limit", type=int) or total_records if total_records > 0 else 1
+
+            if page < 1:
+                page = 1
+            if limit < 1:
+                limit = 10
+
+            # 🔹 Apply pagination
+            ward_beds = query.offset((page - 1) * limit).limit(limit).all()
+            result = ward_beds_serializers.dump(ward_beds)
+
+            # 🔹 Log activity
+            log_activity(
+                "GET_WARDS_BEDS",
+                details=json.dumps({
+                    "count": len(result),
+                    "page": page,
+                    "limit": limit
+                })
+            )
+
+            # 🔹 Structured response
+            response = {
+                "page": page,
+                "page_size": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit,
+                "data": result
+            }
+
+            return response, 200
+
         except Exception:
             logger.exception("Error fetching ward beds")
             return {"error": "Internal error occurred"}, 500

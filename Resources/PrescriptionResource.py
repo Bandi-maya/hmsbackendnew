@@ -1,4 +1,6 @@
 import json
+import logging
+
 from flask import request, g
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
@@ -11,6 +13,9 @@ from Models.PrescritionSurgeries import PrescriptionSurgeries
 from Models.Surgery import Surgery
 from Serializers.PrescriptionSerializers import prescription_serializer, prescription_serializers
 from new import with_tenant_session_and_user
+from utils.logger import log_activity
+
+logger = logging.getLogger(__name__)
 
 
 class PrescriptionResource(Resource):
@@ -20,10 +25,47 @@ class PrescriptionResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session):
         try:
-            prescriptions = tenant_session.query(Prescriptions).all()
-            return prescription_serializers.dump(prescriptions), 200
+            # 🔹 Pagination params
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            # 🔹 Base query
+            query = tenant_session.query(Prescriptions)
+            total_records = query.count()
+
+            # 🔹 Apply pagination if both page and limit are provided
+            if page is not None and limit is not None:
+                if page < 1:
+                    page = 1
+                if limit < 1:
+                    limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                # Default to return all records if pagination not provided
+                page = 1
+                limit = total_records
+
+            prescriptions = query.all()
+            result = prescription_serializers.dump(prescriptions)
+
+            # 🔹 Log activity
+            log_activity("GET_PRESCRIPTIONS", details=json.dumps({
+                "count": len(result),
+                "page": page,
+                "limit": limit
+            }))
+
+            # 🔹 Structured response
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
+
         except Exception as e:
-            print("GET /prescriptions error:", e)
+            logger.exception("Error fetching prescriptions")
             return {"error": "Internal error occurred"}, 500
 
     # ---------------- POST ----------------

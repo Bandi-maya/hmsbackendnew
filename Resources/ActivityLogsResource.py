@@ -1,3 +1,4 @@
+from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 import logging
@@ -14,8 +15,34 @@ class ActivityLogsResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            logs = tenant_session.query(ActivityLog).all()
-            return activity_logs_serializers.dump(logs), 200
+            query = tenant_session.query(ActivityLog)
+
+            # 🔹 Pagination parameters
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+            total_records = query.count()
+
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                # If no pagination, return all records
+                page = 1
+                limit = total_records
+
+            logs = query.all()
+            result = activity_logs_serializers.dump(logs)
+
+            # 🔹 Structured response
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
+
         except Exception:
             logger.exception("Error fetching activity logs")
             return {"error": "Internal error occurred"}, 500

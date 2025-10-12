@@ -8,6 +8,7 @@ from Models.MedicalRecords import MedicalRecords
 from Models.Users import User
 from Serializers.MedicalRecordsSerializer import medical_records_serializers, medical_records_serializer
 from new import with_tenant_session_and_user
+from utils.logger import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,42 @@ class MedicalRecordsResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            records = tenant_session.query(MedicalRecords).all()
-            return medical_records_serializers.dump(records), 200
+            # 🔹 Base query
+            query = tenant_session.query(MedicalRecords)
+            total_records = query.count()
+
+            # 🔹 Pagination params (optional)
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            # 🔹 Apply pagination if both page and limit are provided
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                # Return all if pagination not provided
+                page = 1
+                limit = total_records
+
+            records = query.all()
+            result = medical_records_serializers.dump(records)
+
+            # 🔹 Log activity
+            log_activity(
+                "GET_MEDICAL_RECORDS",
+                details={"count": len(result), "page": page, "limit": limit}
+            )
+
+            # 🔹 Structured response
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
+
         except Exception as e:
             logger.exception("Error fetching medical records")
             return {"error": "Internal error occurred"}, 500

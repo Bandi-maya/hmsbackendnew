@@ -96,10 +96,21 @@ def run_tenant_migrations(db_uri, sub_domain, name):
         fields = [
             {"user_type": user_type_map["Doctor"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
             {"user_type": user_type_map["Doctor"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
-            {"user_type": user_type_map["Doctor"], "field_name": "specialization", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Doctor"], "field_name": "specialization", "field_type": FieldTypeEnum.STRING, "is_mandatory": False},
+            {"user_type": user_type_map["Doctor"], "field_name": "experience", "field_type": FieldTypeEnum.STRING, "is_mandatory": False},
             {"user_type": user_type_map["Patient"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
             {"user_type": user_type_map["Patient"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
             {"user_type": user_type_map["Patient"], "field_name": "disease", "field_type": FieldTypeEnum.STRING, "is_mandatory": False},
+            {"user_type": user_type_map["Patient"], "field_name": "notes", "field_type": FieldTypeEnum.STRING, "is_mandatory": False},
+            {"user_type": user_type_map["Patient"], "field_name": "assigned_to_doctor", "field_type": FieldTypeEnum.STRING, "is_mandatory": False},
+            {"user_type": user_type_map["Nurse"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Nurse"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Receptionist"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Receptionist"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["LabTechnician"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["LabTechnician"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Pharmacist"], "field_name": "first_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
+            {"user_type": user_type_map["Pharmacist"], "field_name": "last_name", "field_type": FieldTypeEnum.STRING, "is_mandatory": True},
         ]
         for f in fields:
             existing = session.query(UserField).filter_by(user_type=f["user_type"], field_name=f["field_name"]).first()

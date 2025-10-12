@@ -36,7 +36,9 @@ class UsersResource(Resource):
             query = tenant_session.query(User)
             user_id = request.args.get('user_id', type=int)
             department_id = request.args.get('department_id')
+            req_user_type = request.args.get('user_type')
 
+            # 🔹 Role-based filters
             if user_type == 'Admin':
                 pass
             elif user_type == 'Patient':
@@ -44,23 +46,50 @@ class UsersResource(Resource):
             elif g.user and g.user.get('department_id'):
                 query = query.filter(User.department_id == g.user.get('department_id'))
 
+            # 🔹 Filter by user_id
             if user_id:
                 user = query.filter(User.id == user_id).first()
                 if not user:
                     return {"message": "User not found"}, 404
                 return user_serializer.dump(user), 200
 
+            # 🔹 Filter by department_id
             if department_id:
                 query = query.filter(User.department_id == department_id)
 
-            req_user_type = request.args.get('user_type')
+            # 🔹 Filter by user_type
             if req_user_type:
                 query = query.join(UserType).filter(func.upper(UserType.type) == req_user_type.upper())
 
+            # 🔹 Pagination parameters
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            total_records = query.count()
+
+            # 🔹 Apply pagination only if both page and limit are provided
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                # If page or limit not provided, return all users
+                page = 1
+                limit = total_records
+
             users = query.all()
-            return user_serializers.dump(users), 200
+
+            # 🔹 Response structure
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": user_serializers.dump(users)
+            }, 200
+
         except Exception as e:
-            print(e)
+            print("Error in GET /user:", e)
             return {"message": "Internal error occurred"}, 500
 
     @with_tenant_session_and_user

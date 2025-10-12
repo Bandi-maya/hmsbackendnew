@@ -21,8 +21,40 @@ class UserFieldsResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            user_fields = tenant_session.query(UserField).filter_by(is_deleted=False).all()
-            return user_field_serializers.dump(user_fields), 200
+            # 🔹 Optional filter
+            field_name = request.args.get("name")
+            query = tenant_session.query(UserField).filter_by(is_deleted=False)
+            if field_name:
+                query = query.filter(UserField.name.ilike(f"%{field_name}%"))
+
+            # 🔹 Pagination params (optional)
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            total_records = query.count()
+
+            # 🔹 Determine pagination
+            if page is None or limit is None:
+                page = 1
+                limit = total_records if total_records > 0 else 1  # avoid limit=0
+                user_fields = query.all()
+            else:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                user_fields = query.offset((page - 1) * limit).limit(limit).all()
+
+            result = user_field_serializers.dump(user_fields)
+
+            # 🔹 Structured response
+            response = {
+                "page": page,
+                "page_size": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit,
+                "data": result
+            }
+
+            return response, 200
 
         except IntegrityError as ie:
             return {"error": f"Database integrity error: {ie.orig}"}, 400

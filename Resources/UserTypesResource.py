@@ -18,8 +18,40 @@ class UserTypesResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            user_types = tenant_session.query(UserType).filter_by(is_active=True).all()
-            return user_type_serializer.dump(user_types), 200
+            # 🔹 Optional filter
+            name = request.args.get("name")
+
+            query = tenant_session.query(UserType).filter_by(is_active=True)
+
+            if name:
+                query = query.filter(UserType.type.ilike(f"%{name}%"))
+
+            total_records = query.count()
+
+            # 🔹 Pagination params (optional)
+            page = request.args.get("page", type=int) or 1
+            limit = request.args.get("limit", type=int) or total_records if total_records > 0 else 1
+
+            if page < 1:
+                page = 1
+            if limit < 1:
+                limit = 10
+
+            # 🔹 Apply pagination
+            user_types = query.offset((page - 1) * limit).limit(limit).all()
+            result = user_type_serializer.dump(user_types)
+
+            # 🔹 Structured response
+            response = {
+                "page": page,
+                "page_size": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit,
+                "data": result
+            }
+
+            return response, 200
+
         except Exception as e:
             print(f"Error fetching user types: {e}")
             return {"message": "Internal error occurred"}, 500

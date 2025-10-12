@@ -24,10 +24,37 @@ class OperationTheatreResource(Resource):
                     return {"error": "Operation Theatre not found"}, 404
                 return operation_theatre_serializer.dump(theatre), 200
 
-            theatres = tenant_session.query(OperationTheatre).all()
+            # 🔹 Base query
+            query = tenant_session.query(OperationTheatre)
+            total_records = query.count()
+
+            # 🔹 Pagination params (optional)
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            # 🔹 Apply pagination if both page and limit provided
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                # Return all if pagination not provided
+                page = 1
+                limit = total_records
+
+            theatres = query.all()
             result = operation_theatre_serializers.dump(theatres)
-            log_activity("GET_OPERATION_THEATRES", details={"count": len(result)})
-            return result, 200
+
+            log_activity("GET_OPERATION_THEATRES", details={"count": len(result), "page": page, "limit": limit})
+
+            # 🔹 Structured response
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
 
         except Exception:
             logger.exception("Error fetching operation theatres")

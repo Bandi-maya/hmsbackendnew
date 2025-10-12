@@ -20,11 +20,52 @@ class WardsResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            wards = tenant_session.query(Ward).all()
+            # 🔹 Optional filters
+            ward_name = request.args.get("name")
+            department_id = request.args.get("department_id", type=int)
+
+            query = tenant_session.query(Ward)
+
+            if ward_name:
+                query = query.filter(Ward.name.ilike(f"%{ward_name}%"))
+
+            if department_id:
+                query = query.filter(Ward.department_id == department_id)
+
+            total_records = query.count()
+
+            # 🔹 Pagination params (optional)
+            page = request.args.get("page", type=int) or 1
+            limit = request.args.get("limit", type=int) or total_records if total_records > 0 else 1
+
+            if page < 1: page = 1
+            if limit < 1: limit = 10
+
+            wards = query.offset((page - 1) * limit).limit(limit).all()
             result = ward_serializers.dump(wards)
-            log_activity("GET_WARDS", details=json.dumps({"count": len(result)}))
-            return result, 200
-        except Exception:
+
+            # 🔹 Log activity
+            log_activity(
+                "GET_WARDS",
+                details=json.dumps({
+                    "count": len(result),
+                    "page": page,
+                    "limit": limit
+                })
+            )
+
+            # 🔹 Structured response
+            response = {
+                "page": page,
+                "page_size": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit,
+                "data": result
+            }
+
+            return response, 200
+
+        except Exception as e:
             logger.exception("Error fetching wards")
             return {"error": "Internal error occurred"}, 500
 

@@ -7,6 +7,7 @@ import logging
 from Models.Medicine import Medicine
 from Serializers.MedicineSerializer import medicine_serializer, medicine_serializers
 from new import with_tenant_session_and_user
+from utils.logger import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +19,42 @@ class MedicineResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            medicines = tenant_session.query(Medicine).filter_by(is_deleted=False).all()
-            return medicine_serializers.dump(medicines), 200
+            # 🔹 Base query (only non-deleted medicines)
+            query = tenant_session.query(Medicine).filter_by(is_deleted=False)
+            total_records = query.count()
+
+            # 🔹 Pagination params (optional)
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            # 🔹 Apply pagination if both page and limit are provided
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                # Return all if pagination not provided
+                page = 1
+                limit = total_records
+
+            medicines = query.all()
+            result = medicine_serializers.dump(medicines)
+
+            # 🔹 Log activity
+            log_activity(
+                "GET_MEDICINES",
+                details={"count": len(result), "page": page, "limit": limit}
+            )
+
+            # 🔹 Structured response
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
+
         except Exception as e:
             logger.exception("Error fetching medicines")
             return {"error": "Internal error occurred"}, 500

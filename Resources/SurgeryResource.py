@@ -19,6 +19,7 @@ class SurgeryResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
+            # 🔹 Optional single item fetch
             surgery_id = request.args.get('id')
             if surgery_id:
                 surgery = tenant_session.query(Surgery).get(surgery_id)
@@ -26,10 +27,41 @@ class SurgeryResource(Resource):
                     return {"error": "Surgery not found"}, 404
                 return surgery_serializer.dump(surgery), 200
 
-            surgeries = tenant_session.query(Surgery).all()
+            # 🔹 Pagination params
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            # 🔹 Query all surgeries
+            query = tenant_session.query(Surgery)
+            total_records = query.count()
+
+            # 🔹 Apply pagination if both page and limit provided
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                page = 1
+                limit = total_records
+
+            surgeries = query.all()
             result = surgery_serializers.dump(surgeries)
-            log_activity("GET_SURGERIES", details=json.dumps({"count": len(result)}))
-            return result, 200
+
+            # 🔹 Log activity
+            log_activity("GET_SURGERIES", details=json.dumps({
+                "count": len(result),
+                "page": page,
+                "limit": limit
+            }))
+
+            # 🔹 Structured response
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
 
         except Exception:
             logger.exception("Error fetching surgeries")

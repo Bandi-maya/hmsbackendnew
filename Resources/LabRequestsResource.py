@@ -9,6 +9,7 @@ from Models.Users import User
 from Models.LabTest import LabTest
 from Serializers.LabRequestSerializers import lab_request_serializer, lab_request_serializers
 from new import with_tenant_session_and_user  # Tenant session decorator
+from utils.logger import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +21,42 @@ class LabRequestsResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            lab_requests = tenant_session.query(LabRequest).all()
-            return lab_request_serializers.dump(lab_requests), 200
+            # 🔹 Base query
+            query = tenant_session.query(LabRequest)
+            total_records = query.count()
+
+            # 🔹 Pagination params (optional)
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            # 🔹 Apply pagination if both page and limit are provided
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                # Return all if pagination not provided
+                page = 1
+                limit = total_records
+
+            lab_requests = query.all()
+            result = lab_request_serializers.dump(lab_requests)
+
+            # 🔹 Log activity
+            log_activity(
+                "GET_LAB_REQUESTS",
+                details={"count": len(result), "page": page, "limit": limit}
+            )
+
+            # 🔹 Structured response
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
+
         except Exception:
             logger.exception("Error fetching lab requests")
             return {"error": "Internal error occurred"}, 500

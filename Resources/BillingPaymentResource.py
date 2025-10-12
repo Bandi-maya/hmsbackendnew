@@ -86,6 +86,7 @@ class BillingPaymentResource(Resource):
     def get(self, tenant_session, billing_id=None, **kwargs):
         try:
             if billing_id:
+                # 🔹 Fetch single billing with payments
                 billing = tenant_session.query(Billing).get(billing_id)
                 if not billing:
                     return {"error": f"Billing with ID {billing_id} not found."}, 404
@@ -107,8 +108,31 @@ class BillingPaymentResource(Resource):
                     ]
                 }, 200
 
-            all_payments = tenant_session.query(Payment).all()
-            return payment_serializers.dump(all_payments), 200
+            # 🔹 Fetch all payments with optional pagination
+            query = tenant_session.query(Payment)
+            total_records = query.count()
+
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                page = 1
+                limit = total_records
+
+            payments = query.all()
+            result = payment_serializers.dump(payments)
+
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
 
         except Exception:
             logger.exception("Error fetching payments")

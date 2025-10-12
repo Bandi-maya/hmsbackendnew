@@ -18,6 +18,7 @@ class SurgeryTypeResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
+            # 🔹 Optional single item fetch
             surgery_type_id = request.args.get('id')
             if surgery_type_id:
                 surgery_type = tenant_session.query(SurgeryType).get(surgery_type_id)
@@ -25,10 +26,41 @@ class SurgeryTypeResource(Resource):
                     return {"error": "Surgery Type not found"}, 404
                 return surgery_type_serializer.dump(surgery_type), 200
 
-            surgery_types = tenant_session.query(SurgeryType).all()
+            # 🔹 Pagination params
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            # 🔹 Query all surgery types
+            query = tenant_session.query(SurgeryType)
+            total_records = query.count()
+
+            # 🔹 Apply pagination only if both page and limit are provided
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                # If pagination not provided, return all
+                page = 1
+                limit = total_records
+
+            surgery_types = query.all()
             result = surgery_type_serializers.dump(surgery_types)
-            log_activity("GET_SURGERY_TYPES", details=json.dumps({"count": len(result)}))
-            return result, 200
+
+            log_activity("GET_SURGERY_TYPES", details=json.dumps({
+                "count": len(result),
+                "page": page,
+                "limit": limit
+            }))
+
+            # 🔹 Structured response
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
 
         except Exception:
             logger.exception("Error fetching surgery types")

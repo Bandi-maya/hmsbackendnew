@@ -1,3 +1,5 @@
+import json
+
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
@@ -10,6 +12,7 @@ from Models.Orders import Orders
 from Models.PurchaseOrder import PurchaseOrder
 from Serializers.OrdersSerializer import order_serializers, order_serializer
 from new import with_tenant_session_and_user
+from utils.logger import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +24,45 @@ class OrdersResource(Resource):
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            orders = tenant_session.query(Orders).all()
-            return order_serializers.dump(orders), 200
+            # 🔹 Pagination params
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
+
+            # 🔹 Base query
+            query = tenant_session.query(Orders)
+            total_records = query.count()
+
+            # 🔹 Apply pagination if both page and limit are provided
+            if page is not None and limit is not None:
+                if page < 1:
+                    page = 1
+                if limit < 1:
+                    limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                # Default to return all records if pagination not provided
+                page = 1
+                limit = total_records
+
+            orders = query.all()
+            result = order_serializers.dump(orders)
+
+            # 🔹 Log activity
+            log_activity("GET_ORDERS", details=json.dumps({
+                "count": len(result),
+                "page": page,
+                "limit": limit
+            }))
+
+            # 🔹 Structured response
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
+
         except Exception as e:
             logger.exception("Error fetching orders")
             return {"error": "Internal error occurred"}, 500
