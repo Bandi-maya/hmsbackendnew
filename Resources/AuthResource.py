@@ -1,6 +1,7 @@
 from flask import request
 from flask_jwt_extended import create_access_token
 from flask_restful import Resource
+from werkzeug.security import check_password_hash
 
 from Models.Users import User
 from Serializers.UserSerializers import user_serializer
@@ -9,7 +10,7 @@ from new import with_tenant_session_and_user
 
 class AuthResource(Resource):
     @with_tenant_session_and_user
-    def post(self, db_session):
+    def post(self, tenant_session, **kwargs):
         data = request.get_json(force=True)
         username = data.get('username')
         password = data.get('password')
@@ -17,11 +18,15 @@ class AuthResource(Resource):
         if not username or not password:
             return {'msg': 'Missing username or password'}, 400
 
-        user = db_session.query(User).filter_by(username=username).first()
+        user = tenant_session.query(User).filter_by(username=username).first()
+
+        print("j")
+        print(user)
         if not user:
             return {'msg': 'Bad username or password'}, 401
         user = user_serializer.dump(user)
-        if user['password'] != password:
+        print(check_password_hash(user['password'], password), user['password'])
+        if not check_password_hash(user['password'], password):
             return {'msg': 'Bad username or password'}, 401
 
         access_token = create_access_token(identity=username)

@@ -75,9 +75,10 @@ class Appointment(db.Model):
         session = self.tenant_session or db.session
         appointment_records = session.query(Appointment).filter_by(appointment_date=self.appointment_date, doctor_id=self.doctor_id).all()
         for record in appointment_records:
-            if record.appointment_start_time and record.appointment_end_time:
-                if record.appointment_start_time <= value <= record.appointment_end_time:
-                    raise ValueError(f"{key} conflicts with another appointment")
+            if record and (not self.id or record.id != self.id):
+                if record.appointment_start_time and record.appointment_end_time:
+                    if record.appointment_start_time <= value <= record.appointment_end_time:
+                        raise ValueError(f"{key} conflicts with another appointment")
 
         return value
     

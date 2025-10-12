@@ -49,7 +49,7 @@ def configure_routes(api):
     api.add_resource(OperationTheatreResource, f'{base_path}/operation-theatre')
     api.add_resource(SurgeryResource, f'{base_path}/surgery')
     api.add_resource(SurgeryTypeResource, f'{base_path}/surgery-type')
-    api.add_resource(BillingPaymentResource, f'{base_path}/billing/<int:billing_id>/payments', '/payment')
+    api.add_resource(BillingPaymentResource, f'{base_path}/billing/<int:billing_id>/payments', f'{base_path}/payment')
     api.add_resource(SurgeryDoctorResource, f'{base_path}/surgery-doctor')
     api.add_resource(ActivityLogsResource, f'{base_path}/activity-logs')
     api.add_resource(AccountInfoResource, '/account-info')

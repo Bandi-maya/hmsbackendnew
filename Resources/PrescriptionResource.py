@@ -18,9 +18,9 @@ class PrescriptionResource(Resource):
 
     # ---------------- GET ----------------
     @with_tenant_session_and_user
-    def get(self, db_session):
+    def get(self, tenant_session):
         try:
-            prescriptions = db_session.query(Prescriptions).all()
+            prescriptions = tenant_session.query(Prescriptions).all()
             return prescription_serializers.dump(prescriptions), 200
         except Exception as e:
             print("GET /prescriptions error:", e)
@@ -28,7 +28,7 @@ class PrescriptionResource(Resource):
 
     # ---------------- POST ----------------
     @with_tenant_session_and_user
-    def post(self, db_session):
+    def post(self, tenant_session):
         try:
             json_data = request.get_json(force=True)
             if not json_data:
@@ -42,21 +42,21 @@ class PrescriptionResource(Resource):
                 return {"error": "Doctor context missing"}, 400
 
             # Check for existing unbilled prescription
-            prescription = db_session.query(Prescriptions).filter_by(
+            prescription = tenant_session.query(Prescriptions).filter_by(
                 patient_id=json_data.get("patient_id"),
                 doctor_id=doctor_id,
                 is_billed=False
             ).first()
 
             if not prescription:
-                Prescriptions.tenant_session = db_session
+                Prescriptions.tenant_session = tenant_session
                 prescription = Prescriptions(
                     patient_id=json_data.get("patient_id"),
                     doctor_id=doctor_id,
                     notes=json_data.get("notes")
                 )
-                db_session.add(prescription)
-                db_session.flush()
+                tenant_session.add(prescription)
+                tenant_session.flush()
 
             # Medicines
             for med in json_data.get("medicines", []):
@@ -64,15 +64,15 @@ class PrescriptionResource(Resource):
                 if not med_id:
                     continue
                 qty = int(med.get("quantity", 1))
-                pm = db_session.query(PrescriptionMedicines).filter_by(
+                pm = tenant_session.query(PrescriptionMedicines).filter_by(
                     prescription_id=prescription.id,
                     medicine_id=med_id
                 ).first()
                 if pm:
                     pm.quantity = qty
                 else:
-                    PrescriptionMedicines.tenant_session = db_session
-                    db_session.add(PrescriptionMedicines(
+                    PrescriptionMedicines.tenant_session = tenant_session
+                    tenant_session.add(PrescriptionMedicines(
                         prescription_id=prescription.id,
                         medicine_id=med_id,
                         quantity=qty
@@ -84,26 +84,26 @@ class PrescriptionResource(Resource):
                 price = surg.get("price")
                 if not surg_type_id:
                     continue
-                surgery_rec = db_session.query(Surgery).filter_by(
+                surgery_rec = tenant_session.query(Surgery).filter_by(
                     surgery_type_id=surg_type_id,
                     patient_id=json_data.get("patient_id")
                 ).first()
                 if not surgery_rec:
-                    Surgery.tenant_session = db_session
+                    Surgery.tenant_session = tenant_session
                     surgery_rec = Surgery(
                         surgery_type_id=surg_type_id,
                         patient_id=json_data.get("patient_id"),
                         price=price
                     )
-                    db_session.add(surgery_rec)
-                    db_session.flush()
+                    tenant_session.add(surgery_rec)
+                    tenant_session.flush()
 
-                if not db_session.query(PrescriptionSurgeries).filter_by(
+                if not tenant_session.query(PrescriptionSurgeries).filter_by(
                     prescription_id=prescription.id,
                     surgery_id=surgery_rec.id
                 ).first():
-                    PrescriptionSurgeries.tenant_session = db_session
-                    db_session.add(PrescriptionSurgeries(
+                    PrescriptionSurgeries.tenant_session = tenant_session
+                    tenant_session.add(PrescriptionSurgeries(
                         prescription_id=prescription.id,
                         surgery_id=surgery_rec.id
                     ))
@@ -113,40 +113,40 @@ class PrescriptionResource(Resource):
                 test_id = test.get("test_id")
                 if not test_id:
                     continue
-                if not db_session.query(PrescriptionTests).filter_by(
+                if not tenant_session.query(PrescriptionTests).filter_by(
                     prescription_id=prescription.id,
                     test_id=test_id
                 ).first():
-                    PrescriptionTests.tenant_session = db_session
-                    db_session.add(PrescriptionTests(
+                    PrescriptionTests.tenant_session = tenant_session
+                    tenant_session.add(PrescriptionTests(
                         prescription_id=prescription.id,
                         test_id=test_id
                     ))
 
-            db_session.commit()
+            tenant_session.commit()
             return prescription_serializer.dump(prescription), 201
 
         except (ValueError, TypeError) as ve:
-            db_session.rollback()
+            tenant_session.rollback()
             return {"error": str(ve)}, 400
         except IntegrityError as ie:
-            db_session.rollback()
+            tenant_session.rollback()
             return {"error": str(ie.orig)}, 400
         except Exception as e:
-            db_session.rollback()
+            tenant_session.rollback()
             print("POST /prescriptions error:", e)
             return {"error": "Internal error occurred"}, 500
 
     # ---------------- PUT ----------------
     @with_tenant_session_and_user
-    def put(self, db_session):
+    def put(self, tenant_session):
         try:
             json_data = request.get_json(force=True)
             presc_id = json_data.get("id")
             if not presc_id:
                 return {"error": "Prescription ID required"}, 400
 
-            prescription = db_session.query(Prescriptions).get(presc_id)
+            prescription = tenant_session.query(Prescriptions).get(presc_id)
             if not prescription:
                 return {"error": "Prescription not found"}, 404
 
@@ -157,38 +157,38 @@ class PrescriptionResource(Resource):
 
             # TODO: update medicines, surgeries, and tests logic if needed
 
-            db_session.commit()
+            tenant_session.commit()
             return prescription_serializer.dump(prescription), 200
 
         except Exception as e:
-            db_session.rollback()
+            tenant_session.rollback()
             print("PUT /prescriptions error:", e)
             return {"error": "Internal error occurred"}, 500
 
     # ---------------- DELETE ----------------
     @with_tenant_session_and_user
-    def delete(self, db_session):
+    def delete(self, tenant_session):
         try:
             json_data = request.get_json(force=True)
             presc_id = json_data.get("id")
             if not presc_id:
                 return {"error": "Prescription ID required"}, 400
 
-            prescription = db_session.query(Prescriptions).get(presc_id)
+            prescription = tenant_session.query(Prescriptions).get(presc_id)
             if not prescription:
                 return {"error": "Prescription not found"}, 404
 
-            db_session.query(PrescriptionMedicines).filter_by(prescription_id=presc_id).delete()
-            db_session.query(PrescriptionTests).filter_by(prescription_id=presc_id).delete()
-            db_session.query(PrescriptionSurgeries).filter_by(prescription_id=presc_id).delete()
-            db_session.delete(prescription)
-            db_session.commit()
+            tenant_session.query(PrescriptionMedicines).filter_by(prescription_id=presc_id).delete()
+            tenant_session.query(PrescriptionTests).filter_by(prescription_id=presc_id).delete()
+            tenant_session.query(PrescriptionSurgeries).filter_by(prescription_id=presc_id).delete()
+            tenant_session.delete(prescription)
+            tenant_session.commit()
             return {"message": "Prescription deleted successfully"}, 200
 
         except IntegrityError as ie:
-            db_session.rollback()
+            tenant_session.rollback()
             return {"error": str(ie.orig)}, 400
         except Exception as e:
-            db_session.rollback()
+            tenant_session.rollback()
             print("DELETE /prescriptions error:", e)
             return {"error": "Internal error occurred"}, 500

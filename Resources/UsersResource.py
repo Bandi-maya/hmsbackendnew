@@ -9,6 +9,8 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 
+from werkzeug.security import generate_password_hash
+
 from Models.UserExtraFields import UserExtraFields
 from Models.UserField import UserField
 from Models.UserType import UserType
@@ -56,7 +58,7 @@ class UsersResource(Resource):
                 query = query.join(UserType).filter(func.upper(UserType.type) == req_user_type.upper())
 
             users = query.all()
-            return user_serializer.dump(users), 200
+            return user_serializers.dump(users), 200
         except Exception as e:
             print(e)
             return {"message": "Internal error occurred"}, 500
@@ -74,14 +76,15 @@ class UsersResource(Resource):
                 return {"message": "No user_type_id provided"}, 400
 
             # This logic assumes you have a utility function for sending email
-            # random_password = generate_random_password()
-            # json_data['password'] = random_password
+            random_password = generate_random_password()
+            json_data['password'] = generate_password_hash(random_password)
 
+            User.tenant_session = tenant_session
             user = User(**json_data)
             tenant_session.add(user)
             tenant_session.flush()  # flush to get the user.id for the extra fields
 
-            # send_email("Your Account Password", [user.email], f"Your password is: {random_password}")
+            send_email("Your Account Password", [user.email], f"Your password is: {random_password}")
 
             fields = tenant_session.query(UserField).filter_by(user_type=user_type_id).all()
             for field in fields:

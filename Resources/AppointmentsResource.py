@@ -79,6 +79,8 @@ class AppointmentsResource(Resource):
             if not appointment_id:
                 return {"error": "Appointment ID is required for update"}, 400
 
+            Appointment.tenant_session = tenant_session
+
             appointment = tenant_session.query(Appointment).get(appointment_id)
             if not appointment:
                 return {"error": "Appointment not found"}, 404
