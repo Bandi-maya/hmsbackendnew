@@ -42,6 +42,7 @@ class MedicalRecordsResource(Resource):
                 return {"error": f"User ID {user_id} not found"}, 404
 
             # Create new record
+            MedicalRecords.tenant_session = tenant_session
             medical_record = MedicalRecords(**json_data)
             tenant_session.add(medical_record)
             tenant_session.commit()

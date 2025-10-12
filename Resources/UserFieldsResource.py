@@ -1,3 +1,4 @@
+from aniso8601.builders.python import year_range_check
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
@@ -38,6 +39,7 @@ class UserFieldsResource(Resource):
                 return {"error": "No input data provided."}, 400
 
             # Create UserField entry
+            UserField.tenant_session = tenant_session
             user_field = UserField(**json_data)
             tenant_session.add(user_field)
             tenant_session.flush()  # To get the new ID
@@ -54,6 +56,7 @@ class UserFieldsResource(Resource):
                     current_data[json_data.get('field_name')] = None
                     user_extra_fields.fields_data = current_data
                 else:
+                    UserExtraFields.tenant_session = tenant_session
                     new_extra_field = UserExtraFields(
                         user_id=user.id,
                         fields_data={json_data.get('field_name'): None}
@@ -99,6 +102,7 @@ class UserFieldsResource(Resource):
                         del fields_data[user_field.field_name]
                     user_extra_fields.fields_data = fields_data
                 else:
+                    UserExtraFields.tenant_session = tenant_session
                     new_extra_field = UserExtraFields(
                         user_id=user.id,
                         fields_data={json_data.get('field_name'): None}

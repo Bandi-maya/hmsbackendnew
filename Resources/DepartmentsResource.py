@@ -34,6 +34,7 @@ class DepartmentsResource(Resource):
             if not json_data:
                 return {"message": "No input data provided"}, 400
 
+            Department.tenant_session = tenant_session
             department = Department(**json_data)
             tenant_session.add(department)
             tenant_session.commit()

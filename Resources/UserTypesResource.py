@@ -31,6 +31,7 @@ class UserTypesResource(Resource):
             if not json_data:
                 return {"message": "No input data provided"}, 400
 
+            UserType.tenant_session = tenant_session
             new_user_type = UserType(**json_data)
             tenant_session.add(new_user_type)
             tenant_session.commit()

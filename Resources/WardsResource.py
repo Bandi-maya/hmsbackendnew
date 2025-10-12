@@ -36,12 +36,14 @@ class WardsResource(Resource):
             if not json_data:
                 return {"error": "No input data provided"}, 400
 
+            Ward.tenant_session = tenant_session
             ward = Ward(**json_data)
             tenant_session.add(ward)
             tenant_session.flush()  # to get ward.id
 
             # Create beds
             for bed_no in range(1, ward.capacity + 1):
+                WardBeds.tenant_session = tenant_session
                 ward_bed = WardBeds(ward_id=ward.id, bed_no=bed_no)
                 tenant_session.add(ward_bed)
 

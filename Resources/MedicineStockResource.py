@@ -45,6 +45,7 @@ class MedicineStockResource(Resource):
             if not medicine:
                 return {"error": f"Medicine ID {medicine_id} not found"}, 404
 
+            MedicineStock.tenant_session = tenant_session
             stock = MedicineStock(**json_data)
             tenant_session.add(stock)
             tenant_session.commit()

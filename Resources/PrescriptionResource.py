@@ -49,6 +49,7 @@ class PrescriptionResource(Resource):
             ).first()
 
             if not prescription:
+                Prescriptions.tenant_session = db_session
                 prescription = Prescriptions(
                     patient_id=json_data.get("patient_id"),
                     doctor_id=doctor_id,
@@ -70,6 +71,7 @@ class PrescriptionResource(Resource):
                 if pm:
                     pm.quantity = qty
                 else:
+                    PrescriptionMedicines.tenant_session = db_session
                     db_session.add(PrescriptionMedicines(
                         prescription_id=prescription.id,
                         medicine_id=med_id,
@@ -87,6 +89,7 @@ class PrescriptionResource(Resource):
                     patient_id=json_data.get("patient_id")
                 ).first()
                 if not surgery_rec:
+                    Surgery.tenant_session = db_session
                     surgery_rec = Surgery(
                         surgery_type_id=surg_type_id,
                         patient_id=json_data.get("patient_id"),
@@ -99,6 +102,7 @@ class PrescriptionResource(Resource):
                     prescription_id=prescription.id,
                     surgery_id=surgery_rec.id
                 ).first():
+                    PrescriptionSurgeries.tenant_session = db_session
                     db_session.add(PrescriptionSurgeries(
                         prescription_id=prescription.id,
                         surgery_id=surgery_rec.id
@@ -113,6 +117,7 @@ class PrescriptionResource(Resource):
                     prescription_id=prescription.id,
                     test_id=test_id
                 ).first():
+                    PrescriptionTests.tenant_session = db_session
                     db_session.add(PrescriptionTests(
                         prescription_id=prescription.id,
                         test_id=test_id

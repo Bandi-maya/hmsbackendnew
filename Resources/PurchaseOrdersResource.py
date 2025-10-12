@@ -45,6 +45,7 @@ class PurchaseOrdersResource(Resource):
             if not medicine:
                 return {"error": f"Medicine ID {medicine_id} not found"}, 404
 
+            PurchaseOrder.tenant_session = tenant_session
             order = PurchaseOrder(**json_data)
             tenant_session.add(order)
             tenant_session.commit()

@@ -50,6 +50,7 @@ class TokenResource(Resource):
             if not json_data:
                 return {"error": "No input data provided"}, 400
 
+            Token.tenant_session = tenant_session
             token = Token(**json_data)
             tenant_session.add(token)
             tenant_session.commit()

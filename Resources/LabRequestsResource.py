@@ -44,6 +44,8 @@ class LabRequestsResource(Resource):
                 for test_id in test_ids:
                     if not tenant_session.query(LabTest).get(test_id):
                         return {"error": f"LabTest ID {test_id} not found"}, 404
+
+                    LabRequest.tenant_session = tenant_session
                     lab_request = LabRequest(**json_data, test_id=test_id)
                     tenant_session.add(lab_request)
                 tenant_session.commit()

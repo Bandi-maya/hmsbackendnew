@@ -52,6 +52,7 @@ class SurgeryTypeResource(Resource):
             if existing:
                 return {"error": f"Surgery Type '{name}' already exists in this department"}, 400
 
+            SurgeryType.tenant_session = tenant_session
             surgery_type = SurgeryType(
                 name=name,
                 department_id=department_id,

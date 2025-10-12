@@ -35,6 +35,7 @@ class BillingPaymentResource(Resource):
             return {"error": f"Payment amount ({amount}) exceeds remaining balance ({remaining})."}, 400
 
         try:
+            Payment.tenant_session = tenant_session
             payment = Payment(
                 billing_id=billing.id,
                 amount=amount,

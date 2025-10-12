@@ -32,6 +32,7 @@ class MedicineResource(Resource):
             if not json_data:
                 return {"error": "No input data provided"}, 400
 
+            Medicine.tenant_session = tenant_session
             medicine = Medicine(**json_data)
             tenant_session.add(medicine)
             tenant_session.commit()

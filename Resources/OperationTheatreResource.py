@@ -49,6 +49,7 @@ class OperationTheatreResource(Resource):
             if existing_ot:
                 return {"error": f"Operation Theatre with name '{name}' already exists"}, 400
 
+            OperationTheatre.tenant_session = tenant_session
             theatre = OperationTheatre(
                 name=name,
                 building=json_data.get('building'),

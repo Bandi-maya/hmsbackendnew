@@ -49,6 +49,7 @@ class AppointmentsResource(Resource):
             if not json_data:
                 return {"error": "No input data provided"}, 400
 
+            Appointment.tenant_session = tenant_session
             appointment = Appointment(**json_data)
             tenant_session.add(appointment)
             tenant_session.commit()

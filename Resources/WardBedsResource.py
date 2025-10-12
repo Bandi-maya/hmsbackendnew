@@ -39,6 +39,7 @@ class WardBedsResource(Resource):
             if not json_data:
                 return {"error": "No input data provided"}, 400
 
+            WardBeds.tenant_session = tenant_session
             ward_bed = WardBeds(**json_data)
             tenant_session.add(ward_bed)
             tenant_session.flush()
@@ -90,12 +91,14 @@ class WardBedsResource(Resource):
 
                 billing = tenant_session.query(Billing).filter_by(patient_id=patient_id).first()
                 if not billing:
+                    Billing.tenant_session = tenant_session
                     billing = Billing(patient_id=patient_id, total_amount=total_price)
                     tenant_session.add(billing)
                     tenant_session.flush()
                 else:
                     billing.total_amount = total_price
 
+                BillingBeds.tenant_session = tenant_session
                 billing_bed = BillingBeds(
                     billing_id=billing.id,
                     price=total_price,

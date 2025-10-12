@@ -45,6 +45,7 @@ class OrdersResource(Resource):
                 return {"error": "Missing user_id or items"}, 400
 
             # ✅ Create the main order
+            Orders.tenant_session = tenant_session
             order = Orders(
                 user_id=user_id,
                 received_date=received_date,
@@ -78,6 +79,7 @@ class OrdersResource(Resource):
 
                 total_amount += (medicine_stock.price or 0) * quantity
 
+                PurchaseOrder.tenant_session = tenant_session
                 purchase_item = PurchaseOrder(
                     order_id=order.id,
                     medicine_id=medicine_id,
@@ -134,6 +136,7 @@ class OrdersResource(Resource):
                     tenant_session.rollback()
                     return {"error": f"Medicine ID {medicine_id} not found"}, 404
 
+                PurchaseOrder.tenant_session = tenant_session
                 new_item = PurchaseOrder(
                     order_id=order.id,
                     medicine_id=medicine_id,

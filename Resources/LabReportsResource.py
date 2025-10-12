@@ -37,6 +37,7 @@ class LabReportsResource(Resource):
             if not tenant_session.query(LabRequest).get(request_id):
                 return {"error": "LabRequest not found"}, 404
 
+            LabReport.tenant_session = tenant_session
             lab_report = LabReport(**json_data)
             tenant_session.add(lab_report)
             tenant_session.commit()

@@ -62,6 +62,7 @@ class SurgeryResource(Resource):
                 except Exception:
                     return {"error": "Invalid format for scheduled_end_time. Use ISO format."}, 400
 
+            Surgery.tenant_session = tenant_session
             surgery = Surgery(
                 patient_id=patient_id,
                 surgery_type_id=surgery_type_id,

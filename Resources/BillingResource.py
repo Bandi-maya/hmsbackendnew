@@ -48,6 +48,7 @@ class BillingResource(Resource):
                 Billing.status != "PAID"
             ).first()
             if not billing:
+                Billing.tenant_session = db_session
                 billing = Billing(
                     patient_id=patient_id,
                     notes=json_data.get('notes'),
@@ -80,6 +81,7 @@ class BillingResource(Resource):
 
             # Handle Tests
             for test in tests:
+                BillingTests.tenant_session = db_session
                 added_test = BillingTests(
                     billing_id=billing.id,
                     test_id=test.get('test_id')
@@ -90,6 +92,7 @@ class BillingResource(Resource):
 
             # Handle Surgeries
             for surgery in surgeries:
+                BillingSurgeries.tenant_session = db_session
                 added_surgery = BillingSurgeries(
                     billing_id=billing.id,
                     surgery_id=surgery.get('surgery_id')

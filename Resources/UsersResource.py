@@ -128,6 +128,7 @@ class UsersResource(Resource):
                 if user_extra_fields:
                     user_extra_fields.fields_data = {**user_extra_fields.fields_data, **extra_fields_data}
                 else:
+                    UserExtraFields.tenant_session = tenant_session
                     tenant_session.add(UserExtraFields(user_id=user.id, fields_data=extra_fields_data))
 
             tenant_session.commit()

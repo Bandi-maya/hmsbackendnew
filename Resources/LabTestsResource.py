@@ -32,6 +32,7 @@ class LabTestsResource(Resource):
             if not json_data:
                 return {"error": "No input data provided"}, 400
 
+            LabTest.tenant_session = tenant_session
             lab_test = LabTest(**json_data)
             tenant_session.add(lab_test)
             tenant_session.commit()

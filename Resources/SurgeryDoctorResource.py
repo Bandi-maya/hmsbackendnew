@@ -54,6 +54,7 @@ class SurgeryDoctorResource(Resource):
             if existing:
                 return {"error": "This doctor-role is already assigned to the surgery"}, 400
 
+            SurgeryDoctor.tenant_session = tenant_session
             record = SurgeryDoctor(
                 surgery_id=surgery_id,
                 doctor_id=doctor_id,
