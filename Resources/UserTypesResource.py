@@ -39,7 +39,7 @@ class UserTypesResource(Resource):
 
             # 🔹 Apply pagination
             user_types = query.offset((page - 1) * limit).limit(limit).all()
-            result = user_type_serializer.dump(user_types)
+            result = user_type_serializers.dump(user_types)
 
             # 🔹 Structured response
             response = {
