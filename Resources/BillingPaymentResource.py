@@ -2,7 +2,11 @@ import json
 import logging
 from flask import request
 from flask_restful import Resource
+from sqlalchemy import or_, String, cast
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import aliased
+
+from Models.Users import User
 from new import with_tenant_session_and_user
 from utils.logger import log_activity
 
@@ -110,10 +114,39 @@ class BillingPaymentResource(Resource):
 
             # 🔹 Fetch all payments with optional pagination
             query = tenant_session.query(Payment)
+            BillingUser = aliased(User)
+
+            query = query.join(Billing)
+            # query = query.join(BillingUser, Billing.patient_id == BillingUser.id)
+
             total_records = query.count()
 
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        BillingUser.name.ilike(f"%{q}%"),
+                        cast(Payment.amount, String).ilike(f"%{q}%"),
+                        Payment.transaction_ref.ilike(f"%{q}%"),
+                    )
+                )
+            status = request.args.get('status')
+            if status:
+                query = query.filter(
+                    or_(
+                        Billing.status== status
+                    )
+                )
+            method = request.args.get('method')
+            if method:
+                query = query.filter(
+                    or_(
+                        Payment.method== method
+                    )
+                )
 
             if page is not None and limit is not None:
                 if page < 1: page = 1

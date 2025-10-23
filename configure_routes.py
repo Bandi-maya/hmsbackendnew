@@ -11,6 +11,7 @@ from Resources.MedicalRecordsResource import MedicalRecordsResource
 from Resources.MedicineStockResource import MedicineStockResource
 from Resources.OperationTheatreResource import OperationTheatreResource
 from Resources.OrdersResource import OrdersResource
+from Resources.PrescriptionMedicineResource import PrescriptionMedicinesResource
 from Resources.PurchaseOrdersResource import PurchaseOrdersResource
 from Resources.SurgeryDoctorResource import SurgeryDoctorResource
 from Resources.SurgeryResource import SurgeryResource

@@ -1,5 +1,6 @@
 from Models.PrescritionSurgeries import PrescriptionSurgeries
 from Serializers.SurgerySerializers import SurgerySerializer
+from Serializers.UserSerializers import user_serializer
 from extentions import ma
 from Models.Prescriptions import Prescriptions
 from Models.PrescriptionMedicines import PrescriptionMedicines
@@ -37,6 +38,8 @@ class PrescriptionSerializer(ma.SQLAlchemyAutoSchema):
     medicines = ma.Nested(PrescriptionMedicineSerializer, many=True)
     tests = ma.Nested(PrescriptionTestsSerializer, many=True)
     surgeries = ma.Nested(PrescriptionSurgerySerializer, many=True)
+    doctor = ma.Nested(user_serializer, dump_only=True)
+    patient = ma.Nested(user_serializer, dump_only=True)
 
     class Meta:
         model = Prescriptions

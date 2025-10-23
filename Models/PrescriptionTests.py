@@ -11,8 +11,9 @@ class PrescriptionTests(db.Model):
     tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
-    prescription_id = db.Column(db.Integer, db.ForeignKey('prescriptions.id'), nullable=False)
+    prescription_id = db.Column(db.Integer, db.ForeignKey('prescriptions.id'), nullable=True)
     test_id = db.Column(db.Integer, db.ForeignKey('lab_test.id'), nullable=False)
+    status = db.Column(db.String, nullable=True, default="PENDING")
     notes = db.Column(db.Text, nullable=True)
 
     # ✅ Corrected back_populates name to match Prescriptions.tests

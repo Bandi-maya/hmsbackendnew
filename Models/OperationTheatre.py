@@ -19,6 +19,8 @@ class OperationTheatre(db.Model):
     room_number = db.Column(db.String(20), nullable=True)
 
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
+    department = db.relationship('Department', backref='operation_theatres', lazy=True)
+
     status = db.Column(db.String(20), default='AVAILABLE')
     is_active = db.Column(db.Boolean, default=True)
     notes = db.Column(db.Text, nullable=True)

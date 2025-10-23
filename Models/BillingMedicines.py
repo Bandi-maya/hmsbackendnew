@@ -1,7 +1,8 @@
 from datetime import datetime
 from sqlalchemy.orm import validates
+
+from Models.Billing import Billing
 from extentions import db
-from Models.Prescriptions import Prescriptions
 from Models.Medicine import Medicine
 from Models.MedicineStock import MedicineStock
 
@@ -17,6 +18,8 @@ class BillingMedicines(db.Model):
     price = db.Column(db.Float, nullable=False)
     notes = db.Column(db.Text, nullable=True)
 
+    billing = db.relationship("Billing", back_populates="medicines")
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -28,13 +31,16 @@ class BillingMedicines(db.Model):
             raise ValueError(f"{key} must be a number")
 
         session = self.tenant_session or db.session
-        existing = session.query(Prescriptions).get(value)
+        if self.tenant_session:
+            print("hi")
+        existing = session.query(Billing).get(value)
+        print(value)
         if not existing:
             raise ValueError(f"Billing not found")
         return value
 
     @validates("medicine_id")
-    def validate_name(self, key, value):
+    def validate_medicine_id(self, key, value):
         if not value or not isinstance(value, int):
             raise ValueError(f"{key} must be a number")
 
@@ -45,14 +51,16 @@ class BillingMedicines(db.Model):
         return value
 
     @validates("quantity")
-    def validate_name(self, key, value):
+    def validate_quantity(self, key, value):
         try:
             value = int(value)
         except (TypeError, ValueError):
             raise ValueError(f"{key} must be a number")
 
         session = self.tenant_session or db.session
+        print(self.medicine_id)
         medicine_stock = session.query(MedicineStock).filter_by(medicine_id=self.medicine_id).first()
+        print(medicine_stock)
         if not medicine_stock:
             return ValueError(f"Something went wrong")
         self.price = medicine_stock.price * value
@@ -64,3 +72,9 @@ class BillingMedicines(db.Model):
         if missing:
             raise ValueError(f"Missing required fields: {', '.join(missing)}")
         super().__init__(**kwargs)
+
+Billing.medicines = db.relationship(
+    'BillingMedicines',
+    back_populates='billing',
+    lazy=True
+)

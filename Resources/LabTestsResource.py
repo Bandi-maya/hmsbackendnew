@@ -1,6 +1,7 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_, cast, String
 from sqlalchemy.exc import IntegrityError
 import logging
 
@@ -21,11 +22,30 @@ class LabTestsResource(Resource):
         try:
             # 🔹 Base query
             query = tenant_session.query(LabTest)
-            total_records = query.count()
 
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        LabTest.name.ilike(f"%{q}%"),
+                        LabTest.description.ilike(f"%{q}%"),
+                        cast(LabTest.price, String).ilike(f"%{q}%"),
+                    )
+                )
+            status = request.args.get('status')
+            if status is not None and status != '':
+                print("status: ", status, status == 'true', status=='false')
+                query = query.filter(
+                    or_(
+                        LabTest.is_available == True if status=='true' else False
+                    )
+                )
+
+            total_records = query.count()
 
             # 🔹 Apply pagination if both page and limit are provided
             if page is not None and limit is not None:

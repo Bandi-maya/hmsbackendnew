@@ -10,13 +10,13 @@ class PrescriptionSurgeries(db.Model):
     tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
-    prescription_id = db.Column(db.Integer, db.ForeignKey('prescriptions.id'), nullable=False)
-    surgery_id = db.Column(db.Integer, db.ForeignKey('surgeries.id'), nullable=False)
+    prescription_id = db.Column(db.Integer, db.ForeignKey('prescriptions.id'), nullable=True)
+    # surgery_id = db.Column(db.Integer, db.ForeignKey('surgeries.id'), nullable=False)
     notes = db.Column(db.Text, nullable=True)
 
     # ✅ Corrected back_populates name to match Prescriptions.tests
     prescription = db.relationship("Prescriptions", back_populates="surgeries")
-    surgery = db.relationship("Surgery", back_populates="prescription_surgeries")
+    # surgery = db.relationship("Surgery", back_populates="prescription_surgeries")
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -32,7 +32,7 @@ class PrescriptionSurgeries(db.Model):
         return value
 
     @validates("surgery_id")
-    def validate_test_id(self, key, value):
+    def validate_surgery_id(self, key, value):
         if not value or not isinstance(value, int):
             raise ValueError(f"{key} must be a number")
         session = self.tenant_session or db.session

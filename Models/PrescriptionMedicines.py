@@ -10,10 +10,12 @@ class PrescriptionMedicines(db.Model):
     tenant_session  =None
 
     id = db.Column(db.Integer, primary_key=True)
-    prescription_id = db.Column(db.Integer, db.ForeignKey('prescriptions.id'), nullable=False)
+    prescription_id = db.Column(db.Integer, db.ForeignKey('prescriptions.id'), nullable=True)
     medicine_id = db.Column(db.Integer, db.ForeignKey('medicine.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=1)
     notes = db.Column(db.Text, nullable=True)
+    taken_by = db.Column(db.String(50), nullable=True)
+    taken_by_phone_no = db.Column(db.String(50), nullable=True)
 
     prescription = db.relationship("Prescriptions", back_populates="medicines")
 

@@ -3,6 +3,7 @@ import logging
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
 from Models.BillingSurgeries import BillingSurgeries
@@ -10,12 +11,12 @@ from Models.MedicineStock import MedicineStock
 from Models.Billing import Billing
 from Models.BillingMedicines import BillingMedicines
 from Models.BillingTests import BillingTests
+from Models.Orders import Orders
+from Models.Users import User
 from Serializers.BillingSerializers import billing_serializers, billing_serializer
 from new import with_tenant_session_and_user
 
 logger = logging.getLogger(__name__)
-
-
 
 class BillingResource(Resource):
     method_decorators = [jwt_required()]
@@ -25,11 +26,30 @@ class BillingResource(Resource):
     def get(self, tenant_session):
         try:
             query = tenant_session.query(Billing)
+            query = query.join(Orders)
+            query = query.join(User, User.id==Orders.user_id)
             total_records = query.count()
 
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        User.name.ilike(f"%{q}%"),
+                        User.email.ilike(f"%{q}%"),
+                        Billing.notes.ilike(f"%{q}%"),
+                    )
+                )
+            status = request.args.get("status")
+            if status: 
+                query = query.filter(
+                    or_(
+                        Billing.status==status
+                    )
+                )
 
             # 🔹 Apply pagination if both page and limit are provided
             if page is not None and limit is not None:
@@ -64,6 +84,27 @@ class BillingResource(Resource):
             json_data = request.get_json(force=True)
             if not json_data:
                 return {"error": "No input data provided"}, 400
+            
+            order_id = json_data.get('order_id')
+
+            if not order_id:
+                return {"error": "Order ID is mandatory"}, 400
+            
+            order = Orders.query.get(order_id)
+            if not order:
+                return {"error": "Order not found"}, 404
+            
+            Billing.tenant_session = tenant_session
+            billing = Billing(
+                order_id=order_id,
+                amount_paid=json_data.get('amount_paid', 0),
+                total_amount=order.total_amount,
+                notes=json_data.get('notes'),
+            )
+            tenant_session.add(billing)
+            tenant_session.commit()
+
+            return billing_serializer.dump(billing)
 
             medicines = json_data.get("medicines", [])
             tests = json_data.get("tests", [])
@@ -103,6 +144,7 @@ class BillingResource(Resource):
                     return {"error": f"Not enough stock for medicine ID {med_id}"}, 400
 
                 stock_record.quantity -= qty
+                BillingMedicines.tenant_session = tenant_session
                 added_medicine = BillingMedicines(
                     billing_id=billing.id,
                     medicine_id=med_id,

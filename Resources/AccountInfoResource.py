@@ -9,6 +9,7 @@ from psycopg2 import sql
 from flask import request, url_for, current_app
 from flask_restful import Resource
 from flask_jwt_extended import jwt_required
+from sqlalchemy import or_
 
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
@@ -49,6 +50,16 @@ class AccountInfoResource(Resource):
             limit = request.args.get("limit", type=int)
 
             query = AccountInfo.query
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        AccountInfo.name.ilike(f"%{q}%"),
+                        AccountInfo.subdomain.ilike(f"%{q}%"),
+                    )
+                )
+
             total_records = query.count()
 
             if page is not None and limit is not None:

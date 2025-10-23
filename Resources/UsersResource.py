@@ -5,7 +5,7 @@ import random
 from flask import request, g
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 
@@ -24,6 +24,7 @@ from utils.utils import send_email
 def generate_random_password(length=10):
     chars = string.ascii_letters + string.digits + """!#$%&()*+,-.:;<=>?@[]_{}"""
     return ''.join(random.choice(chars) for _ in range(length))
+
 
 class UsersResource(Resource):
     method_decorators = [jwt_required()]
@@ -64,6 +65,15 @@ class UsersResource(Resource):
             # 🔹 Pagination parameters
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        User.name.ilike(f"%{q}%"),
+                        User.email.ilike(f"%{q}%"),
+                        User.username.ilike(f"%{q}%"),
+                    )
+                )
 
             total_records = query.count()
 
@@ -81,12 +91,12 @@ class UsersResource(Resource):
 
             # 🔹 Response structure
             return {
-                "page": page,
-                "limit": limit,
-                "total_records": total_records,
-                "total_pages": (total_records + limit - 1) // limit if limit else 1,
-                "data": user_serializers.dump(users)
-            }, 200
+                       "page": page,
+                       "limit": limit,
+                       "total_records": total_records,
+                       "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                       "data": user_serializers.dump(users)
+                   }, 200
 
         except Exception as e:
             print("Error in GET /user:", e)

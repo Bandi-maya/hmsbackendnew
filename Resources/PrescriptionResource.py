@@ -4,13 +4,16 @@ import logging
 from flask import request, g
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_, cast, String
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import aliased
 
 from Models.Prescriptions import Prescriptions
 from Models.PrescriptionMedicines import PrescriptionMedicines
 from Models.PrescriptionTests import PrescriptionTests
 from Models.PrescritionSurgeries import PrescriptionSurgeries
 from Models.Surgery import Surgery
+from Models.Users import User
 from Serializers.PrescriptionSerializers import prescription_serializer, prescription_serializers
 from new import with_tenant_session_and_user
 from utils.logger import log_activity
@@ -31,6 +34,24 @@ class PrescriptionResource(Resource):
 
             # 🔹 Base query
             query = tenant_session.query(Prescriptions)
+            # query = query.join(User).filter(~User.is_deleted)
+            Doctor = aliased(User)
+            Patient = aliased(User)
+            query = query.join(Doctor, Prescriptions.doctor_id == Doctor.id).filter(~Doctor.is_deleted)
+            query = query.join(Patient, Prescriptions.patient_id == Patient.id).filter(~Patient.is_deleted)
+
+            # query = query.join(User, Prescriptions.doctor_id == User.id).filter(~User.is_deleted)
+            # query = query.join(User, Prescriptions.patient_id == User.id).filter(~User.is_deleted)
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        Doctor.name.ilike(f"%{q}%"),
+                        Patient.name.ilike(f"%{q}%"),
+                        cast(Prescriptions.is_billed, String).ilike(f"%{q}%"),
+                        Prescriptions.notes.ilike(f"%{q}%"),
+                    )
+                )
             total_records = query.count()
 
             # 🔹 Apply pagination if both page and limit are provided

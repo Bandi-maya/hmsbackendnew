@@ -2,6 +2,7 @@ from aniso8601.builders.python import year_range_check
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 import logging
 
@@ -30,6 +31,15 @@ class UserFieldsResource(Resource):
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        UserField.field_name.ilike(f"%{q}%"),
+                        UserField.field_type.ilike(f"%{q}%"),
+                        UserField.is_mandatory.ilike(f"%{q}%"),
+                    )
+                )
 
             total_records = query.count()
 

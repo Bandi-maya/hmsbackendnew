@@ -10,16 +10,15 @@ class PurchaseOrder(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)  # 👈 Add this
     medicine_id = db.Column(db.Integer, db.ForeignKey('medicine.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
-    order_date = db.Column(db.Date, nullable=False)
     received_date = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    order = db.relationship('Orders', back_populates='items')  # 👈 Add this
+    order = db.relationship('Orders', back_populates='medicines')  # 👈 Add this
     medicine = db.relationship('Medicine', backref='purchase_orders', lazy=True)
 
-    REQUIRED_FIELDS = ['medicine_id', 'quantity', 'order_date']
+    REQUIRED_FIELDS = ['medicine_id', 'quantity']
 
     def __init__(self, **kwargs):
         missing = [f for f in self.REQUIRED_FIELDS if f not in kwargs or kwargs[f] is None]

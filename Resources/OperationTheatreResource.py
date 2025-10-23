@@ -1,6 +1,7 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_, cast, String
 from sqlalchemy.exc import IntegrityError
 import logging
 
@@ -26,6 +27,32 @@ class OperationTheatreResource(Resource):
 
             # 🔹 Base query
             query = tenant_session.query(OperationTheatre)
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        OperationTheatre.name.ilike(f"%{q}%"),
+                        OperationTheatre.building.ilike(f"%{q}%"),
+                        OperationTheatre.floor.ilike(f"%{q}%"),
+                        OperationTheatre.wing.ilike(f"%{q}%"),
+                        OperationTheatre.room_number.ilike(f"%{q}%"),
+                        OperationTheatre.notes.ilike(f"%{q}%"),
+                    )
+                )
+            department = request.args.get('department')
+            if department:
+                query = query.filter(
+                    or_(
+                        cast(OperationTheatre.department_id, String).ilike(f"%{department}%"),
+                    )
+                )
+            status = request.args.get('status')
+            if status:
+                query = query.filter(
+                    or_(
+                        OperationTheatre.status.ilike(f"%{status}%"),
+                    )
+                )
             total_records = query.count()
 
             # 🔹 Pagination params (optional)

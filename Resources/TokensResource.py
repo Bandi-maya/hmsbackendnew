@@ -1,11 +1,15 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_, cast, String
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 import logging
 
+from sqlalchemy.orm import aliased
+
 from Models.Tokens import Token
+from Models.Users import User
 from Serializers.TokenSerializers import TokenSerializers, TokenSerializerz
 from new import with_tenant_session_and_user
 
@@ -22,6 +26,7 @@ class TokenResource(Resource):
             department_id = request.args.get("department_id")
             date = request.args.get("date")
             doctor_id = request.args.get("doctor_id")
+            status = request.args.get("status")
 
             # 🔹 Base query
             query = tenant_session.query(Token)
@@ -37,10 +42,27 @@ class TokenResource(Resource):
                     query = query.filter(Token.appointment_date == date_obj)
                 except ValueError:
                     return {"error": "Invalid date format. Use YYYY-MM-DD"}, 400
+            Doctor = aliased(User)
+            Patient = aliased(User)
+            query = query.join(Doctor, Token.doctor_id == Doctor.id).filter(~Doctor.is_deleted)
+            query = query.join(Patient, Token.patient_id == Patient.id).filter(~Patient.is_deleted)
 
             # 🔹 Pagination params
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        Doctor.name.ilike(f"%{q}%"),
+                        Doctor.email.ilike(f"%{q}%"),
+                        Patient.name.ilike(f"%{q}%"),
+                        Patient.email.ilike(f"%{q}%"),
+                        cast(Token.token_number, String).ilike(f"%{q}%"),
+                    )
+                )
+            if status:
+                query = query.filter(Token.status == status)
 
             total_records = query.count()
 

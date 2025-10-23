@@ -28,7 +28,7 @@ class WardBeds(db.Model):
     is_deleted = db.Column(db.Boolean, nullable=False, default=False)
 
     patient = db.relationship('User', foreign_keys=[patient_id], lazy=True)
-    ward = db.relationship('Ward', foreign_keys=[ward_id], lazy=True)
+    ward = db.relationship('Ward', backref='ward_beds', lazy=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

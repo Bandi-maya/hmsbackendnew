@@ -1,6 +1,7 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 import logging
 
@@ -26,6 +27,16 @@ class MedicineResource(Resource):
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        Medicine.name.ilike(f"%{q}%"),
+                        Medicine.description.ilike(f"%{q}%"),
+                        Medicine.manufacturer.ilike(f"%{q}%"),
+                    )
+                )
 
             # 🔹 Apply pagination if both page and limit are provided
             if page is not None and limit is not None:

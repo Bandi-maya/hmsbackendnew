@@ -1,3 +1,4 @@
+from sqlalchemy import create_engine
 import logging
 from logging.config import fileConfig
 
@@ -6,6 +7,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
+from app_utils import app
 from extentions import db
 
 # this is the Alembic Config object, which provides
@@ -63,11 +65,14 @@ def run_migrations_online():
                 logger.info('No changes in schema detected.')
 
     # This is the standard way to get a connectable from the config.
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+
+    connectable = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
+
+    # connectable = engine_from_config(
+    #     config.get_section(config.config_ini_section),
+    #     prefix="sqlalchemy.",
+    #     poolclass=pool.NullPool,
+    # )
 
     with connectable.connect() as connection:
         context.configure(

@@ -1,16 +1,24 @@
+import json
+
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_, cast, String
 from sqlalchemy.exc import IntegrityError
 import logging
 
+from sqlalchemy.orm import aliased
+
+from Models.Orders import Orders
 from Models.PurchaseOrder import PurchaseOrder
 from Models.Medicine import Medicine
+from Models.Users import User
 from Serializers.PurchaseOrderSerializer import (
     purchase_order_serializer,
     purchase_order_serializers,
 )
 from new import with_tenant_session_and_user  # ✅ Tenant session decorator
+from utils.logger import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +32,30 @@ class PurchaseOrdersResource(Resource):
         try:
             # 🔹 Pagination params
             page = request.args.get("page", type=int)
-            limit = request.args.get("limit", type=int)
 
-            # 🔹 Base query
+            limit = request.args.get("limit", type=int)
+            OrderUser = aliased(User)
+
             query = tenant_session.query(PurchaseOrder)
+            query = query.join(Orders)
+            query = query.join(OrderUser, Orders.user_id == OrderUser.id)
+            query = query.join(Medicine).filter(~Medicine.is_deleted)
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        # PurchaseOrder.order_id.ilike(f"%{q}%"),
+                        Medicine.name.ilike(f"%{q}%"),
+                        Orders.taken_by.ilike(f"%{q}%"),
+                        Orders.taken_by_phone_no.ilike(f"%{q}%"),
+                        OrderUser.name.ilike(f"%{q}%"),
+                        # PurchaseOrder.medicine_id.ilike(f"%{q}%"),
+                        Medicine.name.ilike(f"%{q}%"),
+                        cast(PurchaseOrder.quantity, String).ilike(f"%{q}%"),
+                        cast(PurchaseOrder.received_date, String).ilike(f"%{q}%"),
+                    )
+                )
+            # 🔹 Base query
             total_records = query.count()
 
             # 🔹 Apply pagination if both page and limit are provided

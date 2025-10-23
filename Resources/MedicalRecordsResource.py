@@ -1,7 +1,7 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 import logging
 
@@ -29,6 +29,15 @@ class MedicalRecordsResource(Resource):
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        MedicalRecords.notes.ilike(f"%{q}%"),
+                        User.name.ilike(f"%{q}%")
+                    )
+                )
 
             # 🔹 Apply pagination if both page and limit are provided
             if page is not None and limit is not None:

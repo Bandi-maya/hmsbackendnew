@@ -1,7 +1,9 @@
 from Models.OperationTheatre import OperationTheatre
+from Serializers.DepartmentSerializers import DepartmentSerializer
 from extentions import ma
 
 class OperationTheatreSerializer(ma.SQLAlchemyAutoSchema):
+    department = ma.Nested(DepartmentSerializer, dump_only=True)
     class Meta:
         model = OperationTheatre
         load_instance = True

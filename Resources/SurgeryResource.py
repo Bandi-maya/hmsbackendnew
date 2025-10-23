@@ -1,12 +1,15 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 import logging
 import json
 
 from Models.Surgery import Surgery
+from Models.SurgeryType import SurgeryType
+from Models.Users import User
 from Serializers.SurgerySerializers import surgery_serializer, surgery_serializers
 from new import with_tenant_session_and_user
 from utils.logger import log_activity
@@ -33,6 +36,18 @@ class SurgeryResource(Resource):
 
             # 🔹 Query all surgeries
             query = tenant_session.query(Surgery)
+            query = query.join(User).filter(~User.is_deleted)
+            query = query.join(SurgeryType)
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        SurgeryType.name.ilike(f"%{q}%"),
+                        User.name.ilike(f"%{q}%"),
+                    )
+                )
+
             total_records = query.count()
 
             # 🔹 Apply pagination if both page and limit provided

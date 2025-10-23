@@ -1,11 +1,15 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_, cast, String
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 import logging
 
+from sqlalchemy.orm import aliased
+
 from Models.Appointments import Appointment
+from Models.Users import User
 from Serializers.AppointmentSerializers import AppointmentSerializers, AppointmentSerializerz
 from new import with_tenant_session_and_user
 
@@ -21,12 +25,17 @@ class AppointmentsResource(Resource):
         try:
             doctor_id = request.args.get("doctor_id")
             appointment_date = request.args.get("date")
+            status = request.args.get("status")
 
             query = tenant_session.query(Appointment).filter_by(is_deleted=False)
+            Doctor = aliased(User)
+            Patient = aliased(User)
+            query = query.join(Doctor, Appointment.doctor_id == Doctor.id).filter(~Doctor.is_deleted)
+            query = query.join(Patient, Appointment.patient_id == Patient.id).filter(~Patient.is_deleted)
 
             # 🔹 Filters
             if doctor_id:
-                query = query.filter_by(doctor_id=doctor_id)
+                query = query.filter(Appointment.doctor_id==doctor_id)
 
             if appointment_date:
                 try:
@@ -38,6 +47,24 @@ class AppointmentsResource(Resource):
             # 🔹 Pagination
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        Doctor.name.ilike(f"%{q}%"),
+                        Doctor.email.ilike(f"%{q}%"),
+                        Patient.name.ilike(f"%{q}%"),
+                        Patient.email.ilike(f"%{q}%"),
+                        cast(Appointment.appointment_date, String).ilike(f"%{q}%"),
+                        cast(Appointment.appointment_start_time, String).ilike(f"%{q}%"),
+                        cast(Appointment.appointment_end_time, String).ilike(f"%{q}%"),
+                        cast(Appointment.duration, String).ilike(f"%{q}%"),
+                    )
+                )
+            if status:
+                query = query.filter(Appointment.status == status)
+
             total_records = query.count()
 
             if page is not None and limit is not None:

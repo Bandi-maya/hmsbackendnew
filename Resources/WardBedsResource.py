@@ -3,12 +3,15 @@ from datetime import datetime
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_, cast, String
 from sqlalchemy.exc import IntegrityError
 import logging
 
 from Models.Billing import Billing
 from Models.BillingBeds import BillingBeds
 from Models.WardBeds import WardBeds
+from Models.Users import User
+from Models.Wards import Ward
 from Serializers.BillingSerializers import billing_serializer
 from Serializers.WardBedsSerializers import ward_beds_serializers, ward_beds_serializer
 from new import with_tenant_session_and_user
@@ -29,6 +32,8 @@ class WardBedsResource(Resource):
             status = request.args.get("status")
 
             query = tenant_session.query(WardBeds)
+            query = query.join(Ward)
+            query = query.join(User)
 
             # 🔹 Apply filters
             if ward_id:
@@ -39,6 +44,27 @@ class WardBedsResource(Resource):
 
             if status:
                 query = query.filter(WardBeds.status.ilike(f"%{status}%"))
+            
+            query = query.filter(WardBeds.patient_id.isnot(None))
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        cast(WardBeds.bed_no, String).ilike(f"%{q}%"),
+                        User.name.ilike(f"%{q}%"),
+                        # WardBeds.patient_id.ilike(f"%{q}%"),
+                        Ward.name.ilike(f"%{q}%"),
+                    )
+                )
+
+            status = request.args.get('status')
+            if status:
+                query = query.filter(WardBeds.status == status)
+
+            ward_id = request.args.get('ward_id')
+            if ward_id:
+                query = query.filter(WardBeds.ward_id == ward_id)
 
             total_records = query.count()
 

@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 import logging
+from sqlalchemy import or_, cast, String
 
 from Models.MedicineStock import MedicineStock
 from Models.Medicine import Medicine
@@ -25,11 +26,23 @@ class MedicineStockResource(Resource):
         try:
             # 🔹 Base query
             query = tenant_session.query(MedicineStock)
-            total_records = query.count()
+            query = query.join(Medicine)
 
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        Medicine.name.ilike(f"%{q}%"),
+                        cast(MedicineStock.quantity, String).ilike(f"%{q}%"),
+                        cast(MedicineStock.batch_no, String).ilike(f"%{q}%"),
+                        cast(MedicineStock.expiry_date, String).ilike(f"%{q}%"),
+                        cast(MedicineStock.price, String).ilike(f"%{q}%"),
+                    )
+                )
 
             # 🔹 Apply pagination if both page and limit provided
             if page is not None and limit is not None:
@@ -41,6 +54,7 @@ class MedicineStockResource(Resource):
                 page = 1
                 limit = total_records
 
+            total_records = query.count()
             stocks = query.all()
             result = medicine_stock_serializers.dump(stocks)
 

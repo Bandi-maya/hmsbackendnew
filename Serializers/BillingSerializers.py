@@ -2,9 +2,11 @@ from Models.BillingBeds import BillingBeds
 from Models.BillingSurgeries import BillingSurgeries
 from extentions import ma
 from Models.Billing import Billing
+# from Serializers.PaymentsSerializers import PaymentSerializer
 from Models.BillingMedicines import BillingMedicines
 from Models.BillingTests import BillingTests
 from Serializers.UserSerializers import UserSchema
+from Serializers.OrdersSerializer import OrdersSerializer
 
 class BillingMedicineSerializer(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -43,14 +45,14 @@ billing_test_serializer = BillingTestsSerializer()
 billing_test_serializers = BillingTestsSerializer(many=True)
 
 class BillingSerializer(ma.SQLAlchemyAutoSchema):
-    medicines = ma.Nested(BillingMedicineSerializer, many=True)
-    tests = ma.Nested(BillingTestsSerializer, many=True)
-    beds = ma.Nested(BillingBedsSerializer, many=True)
-    surgeries = ma.Nested(BillingSurgeriesSerializer, many=True)
+    # medicines = ma.Nested(BillingMedicineSerializer, many=True)
+    # tests = ma.Nested(BillingTestsSerializer, many=True)
+    # beds = ma.Nested(BillingBedsSerializer, many=True)
+    # surgeries = ma.Nested(BillingSurgeriesSerializer, many=True)
+    # payments = ma.Nested(PaymentSerializer, many=True)
+    order = ma.Nested(OrdersSerializer, dump_only=True)
+    # patient = ma.Nested(UserSchema, many=False)
 
-    patient = ma.Nested(UserSchema, many=False)
-    doctor = ma.Nested(UserSchema, many=False)
-    
     class Meta:
         model = Billing
         load_instance = True

@@ -2,6 +2,7 @@ import json
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_, cast, String
 from sqlalchemy.exc import IntegrityError
 import logging
 
@@ -31,6 +32,17 @@ class WardsResource(Resource):
 
             if department_id:
                 query = query.filter(Ward.department_id == department_id)
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        Ward.name.ilike(f"%{q}%"),
+                        Ward.ward_type.ilike(f"%{q}%"),
+                        cast(Ward.capacity, String).ilike(f"%{q}%"),
+                        Ward.email.ilike(f"%{q}%"),
+                    )
+                )
 
             total_records = query.count()
 

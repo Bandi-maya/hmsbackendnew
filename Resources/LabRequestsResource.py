@@ -1,6 +1,7 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 import logging
 
@@ -23,11 +24,27 @@ class LabRequestsResource(Resource):
         try:
             # 🔹 Base query
             query = tenant_session.query(LabRequest)
+            query = query.join(User).filter(~User.is_deleted)
+            query = query.join(LabTest)
             total_records = query.count()
 
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        User.name.ilike(f"%{q}%"),
+                        User.username.ilike(f"%{q}%"),
+                        User.email.ilike(f"%{q}%"),
+                        LabTest.name.ilike(f"%{q}%"),
+                        LabTest.description.ilike(f"%{q}%"),
+                        # LabRequest.patient_id.ilike(f"%{q}%"),
+                        # LabRequest.test_id.ilike(f"%{q}%"),
+                    )
+                )
 
             # 🔹 Apply pagination if both page and limit are provided
             if page is not None and limit is not None:
@@ -50,12 +67,12 @@ class LabRequestsResource(Resource):
 
             # 🔹 Structured response
             return {
-                "page": page,
-                "limit": limit,
-                "total_records": total_records,
-                "total_pages": (total_records + limit - 1) // limit if limit else 1,
-                "data": result
-            }, 200
+                       "page": page,
+                       "limit": limit,
+                       "total_records": total_records,
+                       "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                       "data": result
+                   }, 200
 
         except Exception:
             logger.exception("Error fetching lab requests")

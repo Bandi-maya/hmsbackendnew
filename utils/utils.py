@@ -9,3 +9,7 @@ def send_email(subject, recipients, body, sender='your_email@gmail.com'):
                   recipients=recipients,
                   body=body)
     mail.send(msg)
+
+def handle_medicine_order(payload):
+    if payload:
+        return "hi"

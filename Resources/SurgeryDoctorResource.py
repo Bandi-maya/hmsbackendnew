@@ -3,6 +3,7 @@ import logging
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from new import with_tenant_session_and_user
 from utils.logger import log_activity
@@ -31,8 +32,16 @@ class SurgeryDoctorResource(Resource):
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
 
-            # 🔹 Query all records
             query = tenant_session.query(SurgeryDoctor)
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        SurgeryDoctor.surgery_id.ilike(f"%{q}%"),
+                        SurgeryDoctor.doctor_id.ilike(f"%{q}%"),
+                    )
+                )
+            # 🔹 Query all records
             total_records = query.count()
 
             # 🔹 Apply pagination if both page and limit provided

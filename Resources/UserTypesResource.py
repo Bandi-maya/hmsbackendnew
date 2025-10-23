@@ -1,6 +1,7 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 import logging
 
@@ -25,6 +26,15 @@ class UserTypesResource(Resource):
 
             if name:
                 query = query.filter(UserType.type.ilike(f"%{name}%"))
+
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        UserType.name.ilike(f"%{q}%"),
+                        UserType.description.ilike(f"%{q}%"),
+                    )
+                )
 
             total_records = query.count()
 

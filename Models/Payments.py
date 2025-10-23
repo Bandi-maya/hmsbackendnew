@@ -13,6 +13,9 @@ class Payment(db.Model):
     transaction_ref = db.Column(db.String(100), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+    billing = db.relationship("Billing", back_populates="payments")
+    # billing = db.relationship("Billing", back_populates="payments")
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 

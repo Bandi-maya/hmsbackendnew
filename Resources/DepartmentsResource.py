@@ -4,6 +4,7 @@ import logging
 from flask import request, g
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
 from Models.Department import Department
@@ -30,6 +31,19 @@ class DepartmentsResource(Resource):
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
 
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        Department.name.ilike(f"%{q}%"),
+                        Department.description.ilike(f"%{q}%"),
+                    )
+                )
+
+            status = request.args.get('status')
+            if status:
+                query = query.filter(Department.is_active == (status=="ACTIVE"))
+                
             # 🔹 Apply pagination if both page and limit are provided
             if page is not None and limit is not None:
                 if page < 1: page = 1

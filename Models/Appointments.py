@@ -23,7 +23,7 @@ class Appointment(db.Model):
     appointment_date = db.Column(db.DateTime, nullable=False)
     appointment_start_time = db.Column(db.Time, nullable=True)
     appointment_end_time = db.Column(db.Time, nullable=True)
-    status = db.Column(db.String(50), nullable=False, default='Scheduled')  # e.g., Scheduled, Completed, Canceled
+    status = db.Column(db.String(50), nullable=False, default='SCHEDULED')  # e.g., Scheduled, Completed, Canceled
     duration = db.Column(db.Integer, nullable=True)
 
     is_active = db.Column(db.Boolean, nullable=False, default=True)

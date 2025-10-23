@@ -1,5 +1,7 @@
 from datetime import datetime
 from sqlalchemy.orm import validates
+
+from Models.Billing import Billing
 from extentions import db
 from Models.Prescriptions import Prescriptions
 from Models.LabTest import LabTest
@@ -15,6 +17,8 @@ class BillingTests(db.Model):
     price = db.Column(db.Float, nullable=False)
     notes = db.Column(db.Text, nullable=True)
 
+    billing = db.relationship("Billing", back_populates="tests")
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -26,13 +30,13 @@ class BillingTests(db.Model):
             raise ValueError(f"{key} must be a number")
 
         session = self.tenant_session or db.session
-        existing = session.query(Prescriptions).get(value)
+        existing = session.query(Billing).get(value)
         if not existing:
             raise ValueError(f"Billing not found")
         return value
 
     @validates("test_id")
-    def validate_name(self, key, value):
+    def validate_test_id(self, key, value):
         try:
             value = int(value)
         except (TypeError, ValueError):
@@ -50,3 +54,9 @@ class BillingTests(db.Model):
         if missing:
             raise ValueError(f"Missing required fields: {', '.join(missing)}")
         super().__init__(**kwargs)
+
+Billing.tests = db.relationship(
+    'BillingTests',
+    back_populates='billing',
+    lazy=True
+)
