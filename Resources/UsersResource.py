@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from werkzeug.security import generate_password_hash
 
@@ -35,6 +35,10 @@ class UsersResource(Resource):
             user_type = g.user.get('user_type', {}).get('type') if hasattr(g, "user") and g.user else None
 
             query = tenant_session.query(User).filter_by(is_deleted=False)
+
+            seven_days_ago = datetime.utcnow() - timedelta(days=7)
+            recently_added_records_count = query.filter(User.is_deleted == False,User.created_at >= seven_days_ago).count()
+
             user_id = request.args.get('user_id', type=int)
             department_id = request.args.get('department_id')
             req_user_type = request.args.get('user_type')
@@ -58,9 +62,16 @@ class UsersResource(Resource):
             if department_id:
                 query = query.filter(User.department_id == department_id)
 
+            query = query.join(UserType)
+            patient_users_count = query.filter(func.upper(UserType.type) == 'PATIENT').count()
+            active_records = query.filter_by(is_active=True).count()
+            doctor_users_count = query.filter(func.upper(UserType.type) == 'DOCTOR').count()
+            nurse_users_count = query.filter(func.upper(UserType.type) == 'NURSE').count()
+            staff_users_count = query.filter(~func.upper(UserType.type).in_(('NURSE', 'DOCTOR', 'PATIENT'))).count()
+
             # 🔹 Filter by user_type
             if req_user_type:
-                query = query.join(UserType).filter(func.upper(UserType.type) == req_user_type.upper())
+                query = query.filter(func.upper(UserType.type) == req_user_type.upper())
 
             # 🔹 Pagination parameters
             page = request.args.get("page", type=int)
@@ -91,11 +102,18 @@ class UsersResource(Resource):
 
             # 🔹 Response structure
             return {
-                       "page": page,
-                       "limit": limit,
-                       "total_records": total_records,
-                       "total_pages": (total_records + limit - 1) // limit if limit else 1,
-                       "data": user_serializers.dump(users)
+                        "page": page,
+                        "limit": limit,
+                        "recently_added": recently_added_records_count,
+                        "total_records": total_records,
+                        "patient_users_count": patient_users_count,
+                        "doctor_users_count": doctor_users_count,
+                        "nurse_users_count": nurse_users_count,
+                        "staff_users_count": staff_users_count,
+                        "active_records": active_records,
+                        "inactive_records": total_records - active_records,
+                        "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                        "data": user_serializers.dump(users)
                    }, 200
 
         except Exception as e:

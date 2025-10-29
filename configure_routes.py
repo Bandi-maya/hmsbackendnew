@@ -12,6 +12,7 @@ from Resources.MedicineStockResource import MedicineStockResource
 from Resources.OperationTheatreResource import OperationTheatreResource
 from Resources.OrdersResource import OrdersResource
 from Resources.PrescriptionMedicineResource import PrescriptionMedicinesResource
+from Resources.ExportResource import ExportResource
 from Resources.PurchaseOrdersResource import PurchaseOrdersResource
 from Resources.SurgeryDoctorResource import SurgeryDoctorResource
 from Resources.SurgeryResource import SurgeryResource
@@ -53,5 +54,5 @@ def configure_routes(api):
     api.add_resource(BillingPaymentResource, f'{base_path}/billing/<int:billing_id>/payments', f'{base_path}/payment')
     api.add_resource(SurgeryDoctorResource, f'{base_path}/surgery-doctor')
     api.add_resource(ActivityLogsResource, f'{base_path}/activity-logs')
+    api.add_resource(ExportResource, f'{base_path}/export')
     api.add_resource(AccountInfoResource, '/account-info')
-

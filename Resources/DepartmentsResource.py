@@ -1,13 +1,16 @@
 import json
 import logging
+from datetime import datetime, timedelta
 
 from flask import request, g
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 
 from Models.Department import Department
+from Models.Users import User
+from Models.UserType import UserType
 from Serializers.DepartmentSerializers import department_serializers, department_serializer
 from extentions import db
 from new import with_tenant_session_and_user
@@ -25,7 +28,13 @@ class DepartmentsResource(Resource):
         try:
             # 🔹 Base query
             query = tenant_session.query(Department).filter_by(is_deleted=False)
+            users_query = tenant_session.query(User).filter_by(is_deleted=False).join(UserType)
+            patient_users_count = users_query.filter(func.upper(UserType.type) == 'PATIENT').count()
+            doctor_users_count = users_query.filter(func.upper(UserType.type) == 'DOCTOR').count()
             total_records = query.count()
+            active_records = query.filter_by(is_active=True).count()
+            seven_days_ago = datetime.utcnow() - timedelta(days=7)
+            recently_added_records_count = query.filter(Department.is_deleted == False,Department.created_at >= seven_days_ago).count()
 
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
@@ -68,6 +77,11 @@ class DepartmentsResource(Resource):
                 "page": page,
                 "limit": limit,
                 "total_records": total_records,
+                "active_records": active_records,
+                "inactive_records": total_records - active_records,
+                "recently_added": recently_added_records_count,
+                "patient_users_count": patient_users_count,
+                "doctor_users_count": doctor_users_count,
                 "total_pages": (total_records + limit - 1) // limit if limit else 1,
                 "data": result
             }, 200

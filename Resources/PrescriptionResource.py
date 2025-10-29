@@ -38,7 +38,7 @@ class PrescriptionResource(Resource):
             Doctor = aliased(User)
             Patient = aliased(User)
             query = query.join(Doctor, Prescriptions.doctor_id == Doctor.id).filter(~Doctor.is_deleted)
-            query = query.join(Patient, Prescriptions.patient_id == Patient.id).filter(~Patient.is_deleted)
+            # query = query.join(Patient, Prescriptions.patient_id == Patient.id).filter(~Patient.is_deleted)
 
             # query = query.join(User, Prescriptions.doctor_id == User.id).filter(~User.is_deleted)
             # query = query.join(User, Prescriptions.patient_id == User.id).filter(~User.is_deleted)
@@ -48,7 +48,7 @@ class PrescriptionResource(Resource):
                     or_(
                         Doctor.name.ilike(f"%{q}%"),
                         Patient.name.ilike(f"%{q}%"),
-                        cast(Prescriptions.is_billed, String).ilike(f"%{q}%"),
+                        # cast(Prescriptions.is_billed, String).ilike(f"%{q}%"),
                         Prescriptions.notes.ilike(f"%{q}%"),
                     )
                 )
