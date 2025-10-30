@@ -4,7 +4,7 @@ from decimal import Decimal
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
-from sqlalchemy import or_, func
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 import logging
 from sqlalchemy.orm import aliased
@@ -46,9 +46,6 @@ class OrdersResource(Resource):
             # 🔹 Base query
             query = tenant_session.query(Orders).distinct()
             query = query.join(User)
-            totalOrders = 0
-            todayOrders = 0
-            total_items_purchased = 0
 
             # 🔹 Strict Type Filtering: include only one type, exclude others
             if order_type == 'medicine':
@@ -57,17 +54,8 @@ class OrdersResource(Resource):
                 query = query.filter(
                     ~Orders.surgeries.any(),      # has surgeries
                     Orders.medicines.any(),     # no medicines
-                    ~Orders.lab_tests.any(),
-                    Orders.prescription_id == None     # no lab tests
+                    ~Orders.lab_tests.any()      # no lab tests
                 )
-                totalOrders = query.count()
-                todayOrders = query.filter(Orders.received_date == func.current_date()).count()
-                total_items_purchased = (
-                        tenant_session.query(func.coalesce(func.sum(PurchaseOrder.quantity), 0))
-                        .join(Orders, Orders.id == PurchaseOrder.order_id)
-                        .filter(Orders.prescription_id == None)
-                        .scalar()
-                    )
                 q = request.args.get('q')
                 if q:
                     query = query.filter(
@@ -169,9 +157,6 @@ class OrdersResource(Resource):
             return {
                 "page": page,
                 "limit": limit,
-                "todayOrders": todayOrders,
-                "totalOrders": totalOrders,
-                "total_items_purchased": int(total_items_purchased),
                 "total_records": total_records,
                 "total_pages": (total_records + limit - 1) // limit if limit else 1,
                 "data": result

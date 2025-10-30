@@ -46,7 +46,11 @@ class TokenResource(Resource):
             Patient = aliased(User)
             query = query.join(Doctor, Token.doctor_id == Doctor.id).filter(~Doctor.is_deleted)
             query = query.join(Patient, Token.patient_id == Patient.id).filter(~Patient.is_deleted)
-
+            total_records = query.count()
+            scheduled_records = query.filter(Token.status == 'Alloted').count()
+            completed_records = query.filter(Token.status == 'Completed').count()
+            confirmed_records = query.filter(Token.status == 'Confirmed').count()
+            pending_records = query.filter(Token.status == 'Pending').count()
             # 🔹 Pagination params
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
@@ -64,7 +68,6 @@ class TokenResource(Resource):
             if status:
                 query = query.filter(Token.status == status)
 
-            total_records = query.count()
 
             # 🔹 Apply pagination only if both page and limit are provided
             if page is not None and limit is not None:
@@ -83,6 +86,10 @@ class TokenResource(Resource):
             return {
                 "page": page,
                 "limit": limit,
+                "alloted_records": scheduled_records,
+                "completed_records": completed_records,
+                "confirmed_records": confirmed_records,
+                "pending_records": pending_records,
                 "total_records": total_records,
                 "total_pages": (total_records + limit - 1) // limit if limit else 1,
                 "data": result
@@ -152,27 +159,27 @@ class TokenResource(Resource):
             logger.exception("Error updating token")
             return {"error": "Internal error occurred"}, 500
 
-    # ✅ DELETE token
-    @with_tenant_session_and_user
-    def delete(self, tenant_session, **kwargs):
-        try:
-            json_data = request.get_json(force=True)
-            if not json_data:
-                return {"error": "No input data provided"}, 400
+    # # ✅ DELETE token
+    # @with_tenant_session_and_user
+    # def delete(self, tenant_session, **kwargs):
+    #     try:
+    #         json_data = request.get_json(force=True)
+    #         if not json_data:
+    #             return {"error": "No input data provided"}, 400
 
-            token_id = json_data.get("id")
-            if not token_id:
-                return {"error": "Token ID is required for deletion"}, 400
+    #         token_id = json_data.get("id")
+    #         if not token_id:
+    #             return {"error": "Token ID is required for deletion"}, 400
 
-            token = tenant_session.query(Token).get(token_id)
-            if not token:
-                return {"error": "Token not found"}, 404
+    #         token = tenant_session.query(Token).get(token_id)
+    #         if not token:
+    #             return {"error": "Token not found"}, 404
 
-            tenant_session.delete(token)
-            tenant_session.commit()
-            return {"message": "Token deleted successfully"}, 200
+    #         tenant_session.delete(token)
+    #         tenant_session.commit()
+    #         return {"message": "Token deleted successfully"}, 200
 
-        except Exception:
-            tenant_session.rollback()
-            logger.exception("Error deleting token")
-            return {"error": "Internal error occurred"}, 500
+    #     except Exception:
+    #         tenant_session.rollback()
+    #         logger.exception("Error deleting token")
+    #         return {"error": "Internal error occurred"}, 500

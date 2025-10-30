@@ -2,7 +2,7 @@ from datetime import datetime
 from extentions import db
 from Models.SurgeryType import SurgeryType
 from Models.OperationTheatre import OperationTheatre
-from Models.PrescritionSurgeries import PrescriptionSurgeries
+# from Models.PrescritionSurgeries import PrescriptionSurgeries
 
 class Surgery(db.Model):
     __tablename__ = 'surgeries'

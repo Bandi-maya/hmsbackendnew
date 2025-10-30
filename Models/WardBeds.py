@@ -17,7 +17,7 @@ class WardBeds(db.Model):
     tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
-    bed_no = db.Column(db.Integer, nullable=False, unique=True)
+    bed_no = db.Column(db.String, nullable=False)
     ward_id = db.Column(db.Integer, db.ForeignKey('ward.id'), nullable=False)
     status = db.Column(db.String(50), nullable=False, default='AVAILABLE')
     admission_date = db.Column(db.DateTime, nullable=True)

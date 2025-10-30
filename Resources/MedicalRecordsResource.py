@@ -138,32 +138,32 @@ class MedicalRecordsResource(Resource):
             logger.exception("Error updating medical record")
             return {"error": "Internal error occurred"}, 500
 
-    # ✅ DELETE (soft restriction)
-    @with_tenant_session_and_user
-    def delete(self, tenant_session, **kwargs):
-        # Currently not supporting deletion
-        return {"error": "Now we are not supporting deletion of Medical Records"}, 400
+    # # ✅ DELETE (soft restriction)
+    # @with_tenant_session_and_user
+    # def delete(self, tenant_session, **kwargs):
+    #     # Currently not supporting deletion
+    #     return {"error": "Now we are not supporting deletion of Medical Records"}, 400
 
-        # The below code can be enabled in future if needed
-        """
-        try:
-            record_id = request.args.get("id")
-            if not record_id:
-                return {"error": "Medical Record ID required"}, 400
+    #     # The below code can be enabled in future if needed
+    #     """
+    #     try:
+    #         record_id = request.args.get("id")
+    #         if not record_id:
+    #             return {"error": "Medical Record ID required"}, 400
 
-            record = tenant_session.query(MedicalRecords).get(record_id)
-            if not record:
-                return {"error": "Medical Record not found"}, 404
+    #         record = tenant_session.query(MedicalRecords).get(record_id)
+    #         if not record:
+    #             return {"error": "Medical Record not found"}, 404
 
-            tenant_session.delete(record)
-            tenant_session.commit()
-            return {"message": "Medical Record deleted successfully"}, 200
+    #         tenant_session.delete(record)
+    #         tenant_session.commit()
+    #         return {"message": "Medical Record deleted successfully"}, 200
 
-        except IntegrityError as ie:
-            tenant_session.rollback()
-            return {"error": f"Database integrity error: {ie.orig}"}, 400
-        except Exception as e:
-            tenant_session.rollback()
-            logger.exception("Error deleting medical record")
-            return {"error": "Internal error occurred"}, 500
-        """
+    #     except IntegrityError as ie:
+    #         tenant_session.rollback()
+    #         return {"error": f"Database integrity error: {ie.orig}"}, 400
+    #     except Exception as e:
+    #         tenant_session.rollback()
+    #         logger.exception("Error deleting medical record")
+    #         return {"error": "Internal error occurred"}, 500
+    #     """

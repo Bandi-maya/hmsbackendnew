@@ -139,28 +139,28 @@ class DepartmentsResource(Resource):
             print(e)
             return {"message": "Internal error occurred"}, 500
 
-    @with_tenant_session_and_user
-    def delete(self, tenant_session, **kwargs):
-        try:
-            json_data = request.get_json(force=True)
-            if not json_data:
-                return {"message": "No input data provided"}, 400
+    # @with_tenant_session_and_user
+    # def delete(self, tenant_session, **kwargs):
+    #     try:
+    #         json_data = request.get_json(force=True)
+    #         if not json_data:
+    #             return {"message": "No input data provided"}, 400
 
-            department_id = json_data.get("id")
-            if not department_id:
-                return {"message": "Department ID is required"}, 400
+    #         department_id = json_data.get("id")
+    #         if not department_id:
+    #             return {"message": "Department ID is required"}, 400
 
-            department = tenant_session.query(Department).get(department_id)
-            if not department:
-                return {"message": "Department not found"}, 404
+    #         department = tenant_session.query(Department).get(department_id)
+    #         if not department:
+    #             return {"message": "Department not found"}, 404
 
-            # This is a soft delete
-            department.is_deleted = True
-            department.is_active = False
-            tenant_session.commit()
-            log_activity("DELETE_DEPARTMENT", details=json.dumps(...))
-            return {"message": "Department deleted successfully"}, 200
-        except Exception as e:
-            tenant_session.rollback()
-            print(e)
-            return {"message": "Internal error occurred"}, 500
+    #         # This is a soft delete
+    #         department.is_deleted = True
+    #         department.is_active = False
+    #         tenant_session.commit()
+    #         log_activity("DELETE_DEPARTMENT", details=json.dumps(...))
+    #         return {"message": "Department deleted successfully"}, 200
+    #     except Exception as e:
+    #         tenant_session.rollback()
+    #         print(e)
+    #         return {"message": "Internal error occurred"}, 500

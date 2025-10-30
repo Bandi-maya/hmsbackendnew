@@ -66,78 +66,78 @@ class UserTypesResource(Resource):
             print(f"Error fetching user types: {e}")
             return {"message": "Internal error occurred"}, 500
 
-    @with_tenant_session_and_user
-    def post(self, tenant_session, **kwargs):
-        try:
-            json_data = request.get_json(force=True)
-            if not json_data:
-                return {"message": "No input data provided"}, 400
+    # @with_tenant_session_and_user
+    # def post(self, tenant_session, **kwargs):
+    #     try:
+    #         json_data = request.get_json(force=True)
+    #         if not json_data:
+    #             return {"message": "No input data provided"}, 400
 
-            UserType.tenant_session = tenant_session
-            new_user_type = UserType(**json_data)
-            tenant_session.add(new_user_type)
-            tenant_session.commit()
+    #         UserType.tenant_session = tenant_session
+    #         new_user_type = UserType(**json_data)
+    #         tenant_session.add(new_user_type)
+    #         tenant_session.commit()
 
-            return user_type_serializer.dump(new_user_type), 201
-        except IntegrityError as ie:
-            tenant_session.rollback()
-            return {"message": f"Database integrity error: {ie.orig}"}, 400
-        except Exception as e:
-            tenant_session.rollback()
-            print(f"Error creating user type: {e}")
-            return {"message": "Internal error occurred"}, 500
+    #         return user_type_serializer.dump(new_user_type), 201
+    #     except IntegrityError as ie:
+    #         tenant_session.rollback()
+    #         return {"message": f"Database integrity error: {ie.orig}"}, 400
+    #     except Exception as e:
+    #         tenant_session.rollback()
+    #         print(f"Error creating user type: {e}")
+    #         return {"message": "Internal error occurred"}, 500
 
-    @with_tenant_session_and_user
-    def put(self, tenant_session, **kwargs):
-        try:
-            json_data = request.get_json(force=True)
-            if not json_data:
-                return {"message": "No input data provided"}, 400
+    # @with_tenant_session_and_user
+    # def put(self, tenant_session, **kwargs):
+    #     try:
+    #         json_data = request.get_json(force=True)
+    #         if not json_data:
+    #             return {"message": "No input data provided"}, 400
 
-            user_type_id = json_data.get("id")
-            if not user_type_id:
-                return {"message": "User Type ID is required for update"}, 400
+    #         user_type_id = json_data.get("id")
+    #         if not user_type_id:
+    #             return {"message": "User Type ID is required for update"}, 400
 
-            user_type = tenant_session.query(UserType).get(user_type_id)
-            if not user_type:
-                return {"message": "User Type not found"}, 404
+    #         user_type = tenant_session.query(UserType).get(user_type_id)
+    #         if not user_type:
+    #             return {"message": "User Type not found"}, 404
 
-            for key, value in json_data.items():
-                if hasattr(user_type, key):
-                    setattr(user_type, key, value)
+    #         for key, value in json_data.items():
+    #             if hasattr(user_type, key):
+    #                 setattr(user_type, key, value)
 
-            tenant_session.commit()
-            return user_type_serializer.dump(user_type), 200
-        except IntegrityError as ie:
-            tenant_session.rollback()
-            return {"message": f"Database integrity error: {ie.orig}"}, 400
-        except Exception as e:
-            tenant_session.rollback()
-            print(f"Error updating user type: {e}")
-            return {"message": "Internal error occurred"}, 500
+    #         tenant_session.commit()
+    #         return user_type_serializer.dump(user_type), 200
+    #     except IntegrityError as ie:
+    #         tenant_session.rollback()
+    #         return {"message": f"Database integrity error: {ie.orig}"}, 400
+    #     except Exception as e:
+    #         tenant_session.rollback()
+    #         print(f"Error updating user type: {e}")
+    #         return {"message": "Internal error occurred"}, 500
 
-    @with_tenant_session_and_user
-    def delete(self, tenant_session, **kwargs):
-        try:
-            json_data = request.get_json(force=True)
-            user_type_id = json_data.get("id")
-            if not user_type_id:
-                return {"message": "User Type ID is required for delete"}, 400
+    # @with_tenant_session_and_user
+    # def delete(self, tenant_session, **kwargs):
+    #     try:
+    #         json_data = request.get_json(force=True)
+    #         user_type_id = json_data.get("id")
+    #         if not user_type_id:
+    #             return {"message": "User Type ID is required for delete"}, 400
 
-            user_type = tenant_session.query(UserType).get(user_type_id)
-            if not user_type:
-                return {"message": "User Type not found"}, 404
+    #         user_type = tenant_session.query(UserType).get(user_type_id)
+    #         if not user_type:
+    #             return {"message": "User Type not found"}, 404
 
-            user = tenant_session.query(User).filter_by(user_type_id=user_type.id, is_active=True, is_deleted=False).first()
-            if user:
-                return {"message": "User Type cannot be deleted as a user is assigned to it"}, 400
+    #         user = tenant_session.query(User).filter_by(user_type_id=user_type.id, is_active=True, is_deleted=False).first()
+    #         if user:
+    #             return {"message": "User Type cannot be deleted as a user is assigned to it"}, 400
 
-            user_type.is_active = False
-            user_type.is_deleted = True
-            tenant_session.commit()
+    #         user_type.is_active = False
+    #         user_type.is_deleted = True
+    #         tenant_session.commit()
 
-            return {"message": "User type deactivated successfully"}, 200
-        except Exception as e:
-            tenant_session.rollback()
-            print(f"Error deleting user type: {e}")
-            return {"message": "Internal error occurred"}, 500
+    #         return {"message": "User type deactivated successfully"}, 200
+    #     except Exception as e:
+    #         tenant_session.rollback()
+    #         print(f"Error deleting user type: {e}")
+    #         return {"message": "Internal error occurred"}, 500

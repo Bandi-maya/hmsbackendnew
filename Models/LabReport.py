@@ -1,19 +1,18 @@
 from datetime import datetime
 from extentions import db
-from Models.LabRequest import LabRequest
 
 
 class LabReport(db.Model):
     __tablename__ = 'lab_report'
 
     id = db.Column(db.Integer, primary_key=True)
-    request_id = db.Column(db.Integer, db.ForeignKey('lab_request.id'), nullable=False)
+    # request_id = db.Column(db.Integer, db.ForeignKey('lab_request.id'), nullable=False)
     report_data = db.Column(db.JSON, nullable=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    lab_request = db.relationship('LabRequest', foreign_keys=[request_id])
+    # lab_request = db.relationship('LabRequest', foreign_keys=[request_id])
 
     REQUIRED_FIELDS = ['request_id', 'report_data']
 

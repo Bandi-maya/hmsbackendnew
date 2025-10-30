@@ -31,6 +31,7 @@ class MedicineStockResource(Resource):
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
+            total_records = query.count()
 
             q = request.args.get('q')
             if q:
@@ -54,7 +55,6 @@ class MedicineStockResource(Resource):
                 page = 1
                 limit = total_records
 
-            total_records = query.count()
             stocks = query.all()
             result = medicine_stock_serializers.dump(stocks)
 

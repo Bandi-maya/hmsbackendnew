@@ -220,64 +220,64 @@ class BillingResource(Resource):
             print(f"PUT /billing error: {e}")
             return {"error": "Internal error occurred"}, 500
 
-    # ---------------- DELETE ----------------
-    @with_tenant_session_and_user
-    def delete(self, tenant_session):
-        billing_id = request.args.get("id")
-        if not billing_id:
-            return {"error": "Billing ID required"}, 400
+    # # ---------------- DELETE ----------------
+    # @with_tenant_session_and_user
+    # def delete(self, tenant_session):
+    #     billing_id = request.args.get("id")
+    #     if not billing_id:
+    #         return {"error": "Billing ID required"}, 400
 
-        billing = tenant_session.query(Billing).get(billing_id)
-        if not billing:
-            return {"error": "Billing not found"}, 404
+    #     billing = tenant_session.query(Billing).get(billing_id)
+    #     if not billing:
+    #         return {"error": "Billing not found"}, 404
 
-        tenant_session.query(BillingMedicines).filter_by(billing_id=billing_id).delete()
-        tenant_session.query(BillingTests).filter_by(billing_id=billing_id).delete()
-        tenant_session.query(BillingSurgeries).filter_by(billing_id=billing_id).delete()
-        tenant_session.delete(billing)
-        tenant_session.commit()
-        return {"message": "Billing deleted successfully"}, 200
+    #     tenant_session.query(BillingMedicines).filter_by(billing_id=billing_id).delete()
+    #     tenant_session.query(BillingTests).filter_by(billing_id=billing_id).delete()
+    #     tenant_session.query(BillingSurgeries).filter_by(billing_id=billing_id).delete()
+    #     tenant_session.delete(billing)
+    #     tenant_session.commit()
+    #     return {"message": "Billing deleted successfully"}, 200
 
-    # ---------------- PATCH (Payment) ----------------
-    @with_tenant_session_and_user
-    def patch(self, tenant_session):
-        try:
-            json_data = request.get_json(force=True)
-            bill_id = json_data.get("id")
-            payment_amount = json_data.get("amount")
-            payment_method = json_data.get("method")
-            transaction_ref = json_data.get("transaction_ref")
+    # # ---------------- PATCH (Payment) ----------------
+    # @with_tenant_session_and_user
+    # def patch(self, tenant_session):
+    #     try:
+    #         json_data = request.get_json(force=True)
+    #         bill_id = json_data.get("id")
+    #         payment_amount = json_data.get("amount")
+    #         payment_method = json_data.get("method")
+    #         transaction_ref = json_data.get("transaction_ref")
 
-            if not bill_id or not payment_amount or not payment_method:
-                return {"error": "Missing required fields: id, amount, method"}, 400
+    #         if not bill_id or not payment_amount or not payment_method:
+    #             return {"error": "Missing required fields: id, amount, method"}, 400
 
-            billing = tenant_session.query(Billing).get(bill_id)
-            if not billing:
-                return {"error": f"Bill with ID {bill_id} not found"}, 404
+    #         billing = tenant_session.query(Billing).get(bill_id)
+    #         if not billing:
+    #             return {"error": f"Bill with ID {bill_id} not found"}, 404
 
-            if billing.amount_paid is None:
-                billing.amount_paid = 0.0
+    #         if billing.amount_paid is None:
+    #             billing.amount_paid = 0.0
 
-            applied_amount = billing.record_payment(
-                payment_amount=payment_amount,
-                payment_method=payment_method,
-                transaction_ref=transaction_ref
-            )
-            tenant_session.commit()
+    #         applied_amount = billing.record_payment(
+    #             payment_amount=payment_amount,
+    #             payment_method=payment_method,
+    #             transaction_ref=transaction_ref
+    #         )
+    #         tenant_session.commit()
 
-            remaining_due = billing.total_amount - (billing.amount_paid or 0)
-            return {
-                "message": "Payment recorded successfully",
-                "applied_amount": applied_amount,
-                "new_status": billing.status,
-                "amount_paid": billing.amount_paid,
-                "total_due": remaining_due
-            }, 200
+    #         remaining_due = billing.total_amount - (billing.amount_paid or 0)
+    #         return {
+    #             "message": "Payment recorded successfully",
+    #             "applied_amount": applied_amount,
+    #             "new_status": billing.status,
+    #             "amount_paid": billing.amount_paid,
+    #             "total_due": remaining_due
+    #         }, 200
 
-        except ValueError as ve:
-            tenant_session.rollback()
-            return {"error": str(ve)}, 400
-        except Exception as e:
-            tenant_session.rollback()
-            print(f"PATCH /billing error: {e}")
-            return {"error": "Internal error occurred during payment processing"}, 500
+    #     except ValueError as ve:
+    #         tenant_session.rollback()
+    #         return {"error": str(ve)}, 400
+    #     except Exception as e:
+    #         tenant_session.rollback()
+    #         print(f"PATCH /billing error: {e}")
+    #         return {"error": "Internal error occurred during payment processing"}, 500

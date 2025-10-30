@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 import logging
 
-from sqlalchemy import or_
+from sqlalchemy import or_, cast, String
 
 from new import with_tenant_session_and_user
 from Serializers.ActivityLogsSerializers import activity_logs_serializers
@@ -14,42 +14,38 @@ logger = logging.getLogger(__name__)
 class ActivityLogsResource(Resource):
     method_decorators = [jwt_required()]
 
-    # ✅ GET all activity logs
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
+        """
+        Retrieves paginated activity logs for a tenant.
+        Supports optional search query 'q' across multiple fields.
+        """
         try:
             query = tenant_session.query(ActivityLog)
 
-            # 🔹 Pagination parameters
-            page = request.args.get("page", type=int)
-            limit = request.args.get("limit", type=int)
-
+            # 🔹 Search query
             q = request.args.get('q')
             if q:
                 query = query.filter(
                     or_(
-                        ActivityLog.user_id.ilike(f"%{q}%"),
+                        cast(ActivityLog.user_id, String).ilike(f"%{q}%"),
                         ActivityLog.action.ilike(f"%{q}%"),
                         ActivityLog.details.ilike(f"%{q}%"),
                         ActivityLog.ip_address.ilike(f"%{q}%"),
                     )
                 )
 
+            # 🔹 Pagination parameters
+            page = request.args.get("page", default=1, type=int)
+            limit = request.args.get("limit", default=20, type=int)
+
+            if page < 1: page = 1
+            if limit < 1: limit = 20
+
             total_records = query.count()
-
-            if page is not None and limit is not None:
-                if page < 1: page = 1
-                if limit < 1: limit = 10
-                query = query.offset((page - 1) * limit).limit(limit)
-            else:
-                # If no pagination, return all records
-                page = 1
-                limit = total_records
-
-            logs = query.all()
+            logs = query.offset((page - 1) * limit).limit(limit).all()
             result = activity_logs_serializers.dump(logs)
 
-            # 🔹 Structured response
             return {
                 "page": page,
                 "limit": limit,

@@ -102,54 +102,54 @@ class LabTestsResource(Resource):
             logger.exception("Error creating lab test")
             return {"error": str(e)}, 400
 
-    # ✅ PUT update an existing lab test
-    @with_tenant_session_and_user
-    def put(self, tenant_session, **kwargs):
-        try:
-            json_data = request.get_json(force=True)
-            test_id = json_data.get("id")
-            if not test_id:
-                return {"error": "LabTest ID required"}, 400
+    # # ✅ PUT update an existing lab test
+    # @with_tenant_session_and_user
+    # def put(self, tenant_session, **kwargs):
+    #     try:
+    #         json_data = request.get_json(force=True)
+    #         test_id = json_data.get("id")
+    #         if not test_id:
+    #             return {"error": "LabTest ID required"}, 400
 
-            lab_test = tenant_session.query(LabTest).get(test_id)
-            if not lab_test:
-                return {"error": "LabTest not found"}, 404
+    #         lab_test = tenant_session.query(LabTest).get(test_id)
+    #         if not lab_test:
+    #             return {"error": "LabTest not found"}, 404
 
-            for key, value in json_data.items():
-                if hasattr(lab_test, key):
-                    setattr(lab_test, key, value)
+    #         for key, value in json_data.items():
+    #             if hasattr(lab_test, key):
+    #                 setattr(lab_test, key, value)
 
-            tenant_session.commit()
-            return lab_test_serializer.dump(lab_test), 200
+    #         tenant_session.commit()
+    #         return lab_test_serializer.dump(lab_test), 200
 
-        except IntegrityError as ie:
-            tenant_session.rollback()
-            return {"error": f"Database integrity error: {ie.orig}"}, 400
-        except Exception as e:
-            tenant_session.rollback()
-            logger.exception("Error updating lab test")
-            return {"error": "Internal error occurred"}, 500
+    #     except IntegrityError as ie:
+    #         tenant_session.rollback()
+    #         return {"error": f"Database integrity error: {ie.orig}"}, 400
+    #     except Exception as e:
+    #         tenant_session.rollback()
+    #         logger.exception("Error updating lab test")
+    #         return {"error": "Internal error occurred"}, 500
 
-    # ✅ DELETE a lab test
-    @with_tenant_session_and_user
-    def delete(self, tenant_session, **kwargs):
-        try:
-            test_id = request.args.get("id")
-            if not test_id:
-                return {"error": "LabTest ID required"}, 400
+    # # ✅ DELETE a lab test
+    # @with_tenant_session_and_user
+    # def delete(self, tenant_session, **kwargs):
+    #     try:
+    #         test_id = request.args.get("id")
+    #         if not test_id:
+    #             return {"error": "LabTest ID required"}, 400
 
-            lab_test = tenant_session.query(LabTest).get(test_id)
-            if not lab_test:
-                return {"error": "LabTest not found"}, 404
+    #         lab_test = tenant_session.query(LabTest).get(test_id)
+    #         if not lab_test:
+    #             return {"error": "LabTest not found"}, 404
 
-            tenant_session.delete(lab_test)
-            tenant_session.commit()
-            return {"message": "LabTest deleted successfully"}, 200
+    #         tenant_session.delete(lab_test)
+    #         tenant_session.commit()
+    #         return {"message": "LabTest deleted successfully"}, 200
 
-        except IntegrityError as ie:
-            tenant_session.rollback()
-            return {"error": f"Database integrity error: {ie.orig}"}, 400
-        except Exception as e:
-            tenant_session.rollback()
-            logger.exception("Error deleting lab test")
-            return {"error": "Internal error occurred"}, 500
+    #     except IntegrityError as ie:
+    #         tenant_session.rollback()
+    #         return {"error": f"Database integrity error: {ie.orig}"}, 400
+    #     except Exception as e:
+    #         tenant_session.rollback()
+    #         logger.exception("Error deleting lab test")
+    #         return {"error": "Internal error occurred"}, 500

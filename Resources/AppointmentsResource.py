@@ -5,7 +5,6 @@ from sqlalchemy import or_, cast, String
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 import logging
-
 from sqlalchemy.orm import aliased
 
 from Models.Appointments import Appointment
@@ -15,11 +14,9 @@ from new import with_tenant_session_and_user
 
 logger = logging.getLogger(__name__)
 
-
 class AppointmentsResource(Resource):
     method_decorators = [jwt_required()]
 
-    # ✅ GET appointments
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
@@ -27,28 +24,35 @@ class AppointmentsResource(Resource):
             appointment_date = request.args.get("date")
             status = request.args.get("status")
 
-            query = tenant_session.query(Appointment).filter_by(is_deleted=False)
+            query = tenant_session.query(Appointment).filter(Appointment.is_deleted == False)
             Doctor = aliased(User)
             Patient = aliased(User)
-            query = query.join(Doctor, Appointment.doctor_id == Doctor.id).filter(~Doctor.is_deleted)
-            query = query.join(Patient, Appointment.patient_id == Patient.id).filter(~Patient.is_deleted)
+            query = query.join(Doctor, Appointment.doctor_id == Doctor.id).filter(Doctor.is_deleted == False)
+            query = query.join(Patient, Appointment.patient_id == Patient.id).filter(Patient.is_deleted == False)
 
-            # 🔹 Filters
+            # Filters
             if doctor_id:
-                query = query.filter(Appointment.doctor_id==doctor_id)
+                query = query.filter(Appointment.doctor_id == doctor_id)
 
             if appointment_date:
                 try:
                     date_obj = datetime.strptime(appointment_date, "%Y-%m-%d")
-                    query = query.filter(Appointment.appointment_date == date_obj)
+                    start = datetime.combine(date_obj, datetime.min.time())
+                    end = datetime.combine(date_obj, datetime.max.time())
+                    query = query.filter(Appointment.appointment_date.between(start, end))
                 except ValueError:
                     return {"error": "Invalid date format. Use YYYY-MM-DD"}, 400
+                    
+            total_records = query.count()
+            scheduled_records = query.filter(Appointment.status == 'SCHEDULED').count()
+            completed_records = query.filter(Appointment.status == 'COMPLETED').count()
+            canceled_records = query.filter(Appointment.status == 'CANCELED').count()
 
-            # 🔹 Pagination
-            page = request.args.get("page", type=int)
-            limit = request.args.get("limit", type=int)
+            if status:
+                query = query.filter(Appointment.status == status)
 
-            q = request.args.get('q')
+            # Search
+            q = request.args.get("q")
             if q:
                 query = query.filter(
                     or_(
@@ -62,27 +66,25 @@ class AppointmentsResource(Resource):
                         cast(Appointment.duration, String).ilike(f"%{q}%"),
                     )
                 )
-            if status:
-                query = query.filter(Appointment.status == status)
 
-            total_records = query.count()
+            # Pagination
+            page = request.args.get("page", default=1, type=int)
+            limit = request.args.get("limit", default=20, type=int)
+            if page < 1: page = 1
+            if limit < 1: limit = 20
 
-            if page is not None and limit is not None:
-                if page < 1: page = 1
-                if limit < 1: limit = 10
-                query = query.offset((page - 1) * limit).limit(limit)
-            else:
-                page = 1
-                limit = total_records
+            appointments = query.offset((page - 1) * limit).limit(limit).all()
 
-            appointments = query.all()
-            result = AppointmentSerializers.dump(appointments, many=True)
+            result = AppointmentSerializers.dump(appointments)
 
             return {
                 "page": page,
                 "limit": limit,
+                "scheduled_records": scheduled_records,
+                "completed_records": completed_records,
+                "canceled_records": canceled_records,
                 "total_records": total_records,
-                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "total_pages": (total_records + limit - 1) // limit,
                 "data": result
             }, 200
 
@@ -90,7 +92,6 @@ class AppointmentsResource(Resource):
             logger.exception("Error fetching appointments")
             return {"error": "Internal error occurred"}, 500
 
-    # ✅ POST create new appointment
     @with_tenant_session_and_user
     def post(self, tenant_session, **kwargs):
         try:
@@ -98,7 +99,6 @@ class AppointmentsResource(Resource):
             if not json_data:
                 return {"error": "No input data provided"}, 400
 
-            Appointment.tenant_session = tenant_session
             appointment = Appointment(**json_data)
             tenant_session.add(appointment)
             tenant_session.commit()
@@ -116,7 +116,6 @@ class AppointmentsResource(Resource):
             logger.exception("Error creating appointment")
             return {"error": "Internal error occurred"}, 500
 
-    # ✅ PUT update appointment
     @with_tenant_session_and_user
     def put(self, tenant_session, **kwargs):
         try:
@@ -128,9 +127,7 @@ class AppointmentsResource(Resource):
             if not appointment_id:
                 return {"error": "Appointment ID is required for update"}, 400
 
-            Appointment.tenant_session = tenant_session
-
-            appointment = tenant_session.query(Appointment).get(appointment_id)
+            appointment = tenant_session.get(Appointment, appointment_id)
             if not appointment:
                 return {"error": "Appointment not found"}, 404
 
@@ -152,7 +149,6 @@ class AppointmentsResource(Resource):
             logger.exception("Error updating appointment")
             return {"error": "Internal error occurred"}, 500
 
-    # ✅ DELETE appointment (soft delete)
     @with_tenant_session_and_user
     def delete(self, tenant_session, **kwargs):
         try:
@@ -164,7 +160,7 @@ class AppointmentsResource(Resource):
             if not appointment_id:
                 return {"error": "Appointment ID is required for deletion"}, 400
 
-            appointment = tenant_session.query(Appointment).get(appointment_id)
+            appointment = tenant_session.get(Appointment, appointment_id)
             if not appointment:
                 return {"error": "Appointment not found"}, 404
 

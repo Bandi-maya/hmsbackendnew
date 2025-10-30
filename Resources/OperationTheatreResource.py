@@ -158,28 +158,28 @@ class OperationTheatreResource(Resource):
             logger.exception("Error updating operation theatre")
             return {"error": "Internal error occurred"}, 500
 
-    @with_tenant_session_and_user
-    def delete(self, tenant_session, **kwargs):
-        try:
-            theatre_id = request.args.get('id')
-            if not theatre_id:
-                return {"error": "Operation Theatre ID required"}, 400
+    # @with_tenant_session_and_user
+    # def delete(self, tenant_session, **kwargs):
+    #     try:
+    #         theatre_id = request.args.get('id')
+    #         if not theatre_id:
+    #             return {"error": "Operation Theatre ID required"}, 400
 
-            theatre = tenant_session.query(OperationTheatre).get(theatre_id)
-            if not theatre:
-                return {"error": "Operation Theatre not found"}, 404
+    #         theatre = tenant_session.query(OperationTheatre).get(theatre_id)
+    #         if not theatre:
+    #             return {"error": "Operation Theatre not found"}, 404
 
-            deleted_data = operation_theatre_serializer.dump(theatre)
-            tenant_session.delete(theatre)
-            tenant_session.commit()
+    #         deleted_data = operation_theatre_serializer.dump(theatre)
+    #         tenant_session.delete(theatre)
+    #         tenant_session.commit()
 
-            log_activity("DELETE_OPERATION_THEATRE", details=deleted_data)
-            return {"message": "Operation Theatre deleted successfully"}, 200
+    #         log_activity("DELETE_OPERATION_THEATRE", details=deleted_data)
+    #         return {"message": "Operation Theatre deleted successfully"}, 200
 
-        except IntegrityError as ie:
-            tenant_session.rollback()
-            return {"error": str(ie.orig)}, 400
-        except Exception:
-            tenant_session.rollback()
-            logger.exception("Error deleting operation theatre")
-            return {"error": "Internal error occurred"}, 500
+    #     except IntegrityError as ie:
+    #         tenant_session.rollback()
+    #         return {"error": str(ie.orig)}, 400
+    #     except Exception:
+    #         tenant_session.rollback()
+    #         logger.exception("Error deleting operation theatre")
+    #         return {"error": "Internal error occurred"}, 500

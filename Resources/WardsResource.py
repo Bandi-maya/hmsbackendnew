@@ -17,23 +17,20 @@ logger = logging.getLogger(__name__)
 class WardsResource(Resource):
     method_decorators = [jwt_required()]
 
-    # ✅ GET all wards
+    # GET all wards
     @with_tenant_session_and_user
     def get(self, tenant_session, **kwargs):
         try:
-            # 🔹 Optional filters
             ward_name = request.args.get("name")
             department_id = request.args.get("department_id", type=int)
-
             query = tenant_session.query(Ward)
 
             if ward_name:
                 query = query.filter(Ward.name.ilike(f"%{ward_name}%"))
-
             if department_id:
                 query = query.filter(Ward.department_id == department_id)
 
-            q = request.args.get('q')
+            q = request.args.get("q")
             if q:
                 query = query.filter(
                     or_(
@@ -45,43 +42,27 @@ class WardsResource(Resource):
                 )
 
             total_records = query.count()
-
-            # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int) or 1
-            limit = request.args.get("limit", type=int) or total_records if total_records > 0 else 1
-
-            if page < 1: page = 1
-            if limit < 1: limit = 10
+            limit = request.args.get("limit", type=int) or (total_records if total_records > 0 else 1)
 
             wards = query.offset((page - 1) * limit).limit(limit).all()
             result = ward_serializers.dump(wards)
 
-            # 🔹 Log activity
-            log_activity(
-                "GET_WARDS",
-                details=json.dumps({
-                    "count": len(result),
-                    "page": page,
-                    "limit": limit
-                })
-            )
+            log_activity("GET_WARDS", details=json.dumps({"count": len(result), "page": page, "limit": limit}))
 
-            # 🔹 Structured response
-            response = {
+            return {
                 "page": page,
                 "page_size": limit,
                 "total_records": total_records,
                 "total_pages": (total_records + limit - 1) // limit,
                 "data": result
-            }
+            }, 200
 
-            return response, 200
-
-        except Exception as e:
+        except Exception:
             logger.exception("Error fetching wards")
             return {"error": "Internal error occurred"}, 500
 
-    # ✅ POST create new ward with beds
+    # POST create new ward with beds
     @with_tenant_session_and_user
     def post(self, tenant_session, **kwargs):
         try:
@@ -89,20 +70,20 @@ class WardsResource(Resource):
             if not json_data:
                 return {"error": "No input data provided"}, 400
 
-            Ward.tenant_session = tenant_session
             ward = Ward(**json_data)
             tenant_session.add(ward)
-            tenant_session.flush()  # to get ward.id
+            tenant_session.flush()  # get ward.id
 
             # Create beds
             for bed_no in range(1, ward.capacity + 1):
-                WardBeds.tenant_session = tenant_session
-                ward_bed = WardBeds(ward_id=ward.id, bed_no=bed_no)
-                tenant_session.add(ward_bed)
-
-            log_activity("CREATE_WARD", details=json.dumps(ward_serializer.dump(ward)))
+                bed = WardBeds(
+                    ward_id=ward.id,
+                    bed_no=f"{ward.name}-{bed_no}"
+                )
+                tenant_session.add(bed)
 
             tenant_session.commit()
+            log_activity("CREATE_WARD", details=json.dumps(ward_serializer.dump(ward)))
             return ward_serializer.dump(ward), 201
 
         except ValueError as ve:
@@ -116,7 +97,7 @@ class WardsResource(Resource):
             logger.exception("Error creating ward")
             return {"error": "Internal error occurred"}, 500
 
-    # ✅ PUT update ward and adjust beds
+    # PUT update ward and adjust beds
     @with_tenant_session_and_user
     def put(self, tenant_session, **kwargs):
         try:
@@ -130,43 +111,46 @@ class WardsResource(Resource):
                 return {"error": "Ward not found"}, 404
 
             old_data = ward_serializer.dump(ward)
-            ward_beds_count = tenant_session.query(WardBeds).filter_by(ward_id=ward_id).count()
-
-            # Add new beds if capacity increased
-            if ward_beds_count < json_data.get("capacity", ward.capacity):
-                for bed_no in range(ward_beds_count + 1, json_data["capacity"] + 1):
-                    tenant_session.add(WardBeds(ward_id=ward.id, bed_no=bed_no))
-
-            # Remove extra beds if capacity reduced
-            elif ward_beds_count > json_data.get("capacity", ward.capacity):
-                occupied_beds = tenant_session.query(WardBeds).filter(
-                    WardBeds.ward_id == ward_id,
-                    WardBeds.patient_id.isnot(None)
-                ).count()
-
-                if occupied_beds > json_data["capacity"]:
-                    raise ValueError("Ward has more occupied beds than its new capacity")
-
-                extra_beds_to_delete = ward_beds_count - json_data["capacity"]
-                unoccupied_beds = tenant_session.query(WardBeds).filter(
-                    WardBeds.ward_id == ward_id,
-                    WardBeds.patient_id.is_(None)
-                ).order_by(WardBeds.bed_no.desc()).limit(extra_beds_to_delete).all()
-
-                for bed in unoccupied_beds:
-                    tenant_session.delete(bed)
+            old_name = ward.name  # Save old name for bed renaming
 
             # Update ward fields
             for key, value in json_data.items():
                 if hasattr(ward, key):
                     setattr(ward, key, value)
 
+            # Adjust beds if capacity changed
+            current_bed_count = tenant_session.query(WardBeds).filter_by(ward_id=ward_id).count()
+            if ward.capacity > current_bed_count:
+                # Add new beds
+                for bed_no in range(current_bed_count + 1, ward.capacity + 1):
+                    bed = WardBeds(
+                        ward_id=ward.id,
+                        bed_no=f"{ward.name}-{bed_no}"
+                    )
+                    tenant_session.add(bed)
+            elif ward.capacity < current_bed_count:
+                # Remove unoccupied beds if capacity decreased
+                unoccupied_beds = tenant_session.query(WardBeds)\
+                    .filter(WardBeds.ward_id == ward_id, WardBeds.patient_id.is_(None))\
+                    .order_by(WardBeds.bed_no.desc()).all()
+                beds_to_remove = current_bed_count - ward.capacity
+                if len(unoccupied_beds) < beds_to_remove:
+                    raise ValueError("Cannot reduce capacity: not enough unoccupied beds")
+                for bed in unoccupied_beds[:beds_to_remove]:
+                    tenant_session.delete(bed)
+
+            # Update bed names if ward name changed
+            if 'name' in json_data and json_data['name'] != old_name:
+                beds = tenant_session.query(WardBeds).filter_by(ward_id=ward_id).order_by(WardBeds.id).all()
+                for idx, bed in enumerate(beds, start=1):
+                    bed.bed_no = f"{ward.name}-{idx}"
+
             tenant_session.commit()
-
-            new_data = ward_serializer.dump(ward)
-            log_activity("UPDATE_WARD", details=json.dumps({"before": old_data, "after": new_data}))
-
-            return new_data, 200
+            log_activity(
+                "UPDATE_WARD",
+                details=json.dumps({"before": old_data, "after": ward_serializer.dump(ward)})
+            )
+            return ward_serializer.dump(ward), 200
 
         except ValueError as ve:
             tenant_session.rollback()
@@ -179,7 +163,7 @@ class WardsResource(Resource):
             logger.exception("Error updating ward")
             return {"error": "Internal error occurred"}, 500
 
-    # ✅ DELETE ward (soft delete with bed check)
+    # DELETE ward (soft delete)
     @with_tenant_session_and_user
     def delete(self, tenant_session, **kwargs):
         try:
@@ -192,12 +176,10 @@ class WardsResource(Resource):
             if not ward:
                 return {"error": "Ward not found"}, 404
 
-            ward_beds_count = tenant_session.query(WardBeds).filter(
-                WardBeds.ward_id == ward_id,
-                WardBeds.status.notin_(["DISCHARGED"])
-            ).count()
-            if ward_beds_count != 0:
-                return {"error": "Patient is assigned to a bed in the ward."}, 400
+            active_beds_count = tenant_session.query(WardBeds)\
+                .filter(WardBeds.ward_id == ward_id, WardBeds.patient_id.isnot(None)).count()
+            if active_beds_count > 0:
+                return {"error": "Cannot delete ward: patients assigned to beds"}, 400
 
             # Soft delete beds
             tenant_session.query(WardBeds).filter(WardBeds.ward_id == ward_id).update(
@@ -208,11 +190,8 @@ class WardsResource(Resource):
             ward.is_active = False
             ward.is_deleted = True
 
-            deleted_data = ward_serializer.dump(ward)
             tenant_session.commit()
-
-            log_activity("DELETE_WARD", details=json.dumps(deleted_data))
-
+            log_activity("DELETE_WARD", details=json.dumps(ward_serializer.dump(ward)))
             return {"message": "Ward deleted successfully"}, 200
 
         except IntegrityError as ie:
