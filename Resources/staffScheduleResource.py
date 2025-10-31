@@ -22,32 +22,51 @@ class StaffScheduleResource(Resource):
         try:
             staff_id = request.args.get('doctor_id')
 
-            if not staff_id:
-                return {"error": "Missing 'doctor_id' in query parameters"}, 400
+            if staff_id:
+                schedule = tenant_session.query(StaffSchedule).filter_by(staff_id=staff_id).first()
 
-            schedule = tenant_session.query(StaffSchedule).filter_by(staff_id=staff_id).first()
+                if not schedule:
+                    return {}, 200
 
-            if not schedule:
-                return {}, 200
-
-            result = {
-                "doctor_id": schedule.staff_id,
-                "start_time": schedule.start_time.strftime('%H:%M'),
-                "end_time": schedule.end_time.strftime('%H:%M'),
-                "status": schedule.status.name,
-                "schedule_items": [
-                    {
-                        "title": item.title,
-                        "start_time": item.start_time.strftime('%H:%M'),
-                        "end_time": item.end_time.strftime('%H:%M'),
-                        "location": item.location,
-                        "notes": item.notes
-                    } for item in schedule.items
-                ]
-            }
-            log_activity("GET_STAFF_SCHEDULE",
-                         details=json.dumps({"staff_id": staff_id}))
-            return result, 200
+                result = {
+                    "doctor_id": schedule.staff_id,
+                    "start_time": schedule.start_time.strftime('%H:%M'),
+                    "end_time": schedule.end_time.strftime('%H:%M'),
+                    "status": schedule.status.name,
+                    "schedule_items": [
+                        {
+                            "title": item.title,
+                            "start_time": item.start_time.strftime('%H:%M'),
+                            "end_time": item.end_time.strftime('%H:%M'),
+                            "location": item.location,
+                            "notes": item.notes
+                        } for item in schedule.items
+                    ]
+                }
+                log_activity("GET_STAFF_SCHEDULE",
+                             details=json.dumps({"staff_id": staff_id}))
+                return result, 200
+            else:
+                schedules = tenant_session.query(StaffSchedule).options(joinedload(StaffSchedule.items)).all()
+                results = []
+                for schedule in schedules:
+                    results.append({
+                        "doctor_id": schedule.staff_id,
+                        "start_time": schedule.start_time.strftime('%H:%M'),
+                        "end_time": schedule.end_time.strftime('%H:%M'),
+                        "status": schedule.status.name,
+                        "schedule_items": [
+                            {
+                                "title": item.title,
+                                "start_time": item.start_time.strftime('%H:%M'),
+                                "end_time": item.end_time.strftime('%H:%M'),
+                                "location": item.location,
+                                "notes": item.notes
+                            } for item in schedule.items
+                        ]
+                    })
+                log_activity("GET_ALL_STAFF_SCHEDULES", details=json.dumps({"count": len(results)}))
+                return results, 200
 
         except Exception as e:
             current_app.logger.error(e)

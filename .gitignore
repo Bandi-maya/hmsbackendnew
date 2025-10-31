@@ -59,3 +59,5 @@ coverage.xml
 # Windows
 Thumbs.db
 venv
+
+__pycache__/
