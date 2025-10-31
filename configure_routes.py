@@ -28,6 +28,8 @@ from Resources.TokensResource import TokenResource
 from Resources.StatsResource import StatsResource
 # from Resources.PrescriptionResource import PrescriptionResource
 from Resources.BillingResource import BillingResource
+from Resources.staffScheduleResource import StaffSchedule, StaffScheduleResource
+
 
 def configure_routes(api):
     base_path = '/tenant/<string:account_uid>'
@@ -60,3 +62,4 @@ def configure_routes(api):
     api.add_resource(StatsResource, f'{base_path}/stats')
     # api.add_resource(EmergencyResource, f'{base_path}/emergencies')
     api.add_resource(AccountInfoResource, '/account-info')
+    api.add_resource(StaffScheduleResource, f'{base_path}/staff-schedule')
