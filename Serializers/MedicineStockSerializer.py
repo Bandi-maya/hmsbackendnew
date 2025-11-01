@@ -1,9 +1,9 @@
 from extentions import ma
 from Models.MedicineStock import MedicineStock
-from Serializers.MedicineSerializer import medicine_serializer
+# from Serializers.MedicineSerializer import medicine_serializer
 
 class MedicineStockSerializer(ma.SQLAlchemyAutoSchema):
-    medicine = ma.Nested(medicine_serializer, dump_only=True)
+    # medicine = ma.Nested(medicine_serializer, dump_only=True)
 
     class Meta:
         model = MedicineStock

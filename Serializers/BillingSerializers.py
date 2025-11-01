@@ -7,6 +7,7 @@ from Models.BillingMedicines import BillingMedicines
 from Models.BillingTests import BillingTests
 from Serializers.UserSerializers import UserSchema
 from Serializers.OrdersSerializer import OrdersSerializer
+from Serializers.WardBedsSerializers import WardBedsSerializer
 
 class BillingMedicineSerializer(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -51,7 +52,8 @@ class BillingSerializer(ma.SQLAlchemyAutoSchema):
     # surgeries = ma.Nested(BillingSurgeriesSerializer, many=True)
     # payments = ma.Nested(PaymentSerializer, many=True)
     order = ma.Nested(OrdersSerializer, dump_only=True)
-    # patient = ma.Nested(UserSchema, many=False)
+    bed = ma.Nested(WardBedsSerializer, dump_only=True)
+    patient = ma.Nested(UserSchema, many=False)
 
     class Meta:
         model = Billing

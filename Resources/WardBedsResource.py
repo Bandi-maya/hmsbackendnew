@@ -164,22 +164,18 @@ class WardBedsResource(Resource):
                 except Exception as date_err:
                     return {"error": f"Invalid admission date: {date_err}"}, 400
 
-                billing = tenant_session.query(Billing).filter_by(patient_id=patient_id).first()
-                if not billing:
-                    Billing.tenant_session = tenant_session
-                    billing = Billing(patient_id=patient_id, total_amount=total_price)
-                    tenant_session.add(billing)
-                    tenant_session.flush()
-                else:
-                    billing.total_amount = total_price
+                Billing.tenant_session = tenant_session
+                billing = Billing(bed_id=ward_id, patient_id=ward_bed.patient_id, total_amount=total_price)
+                tenant_session.add(billing)
+                tenant_session.flush()
 
-                BillingBeds.tenant_session = tenant_session
-                billing_bed = BillingBeds(
-                    billing_id=billing.id,
-                    price=total_price,
-                    bed_id=ward_bed.id
-                )
-                tenant_session.add(billing_bed)
+                # BillingBeds.tenant_session = tenant_session
+                # billing_bed = BillingBeds(
+                #     billing_id=billing.id,
+                #     price=total_price,
+                #     bed_id=ward_bed.id
+                # )
+                # tenant_session.add(billing_bed)
 
             # Update fields
             for key, value in json_data.items():

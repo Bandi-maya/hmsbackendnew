@@ -10,6 +10,11 @@ class PurchaseTest(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     test_id = db.Column(db.Integer, db.ForeignKey('lab_test.id'), nullable=False)
     status = db.Column(db.String, nullable=True, default="PENDING")
+    notes = db.Column(db.Text, nullable=True)
+    result = db.Column(db.Text, nullable=True)
+    additional_notes = db.Column(db.Text, nullable=True)
+    findings = db.Column(db.Text, nullable=True)
+    recommendations = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

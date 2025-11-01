@@ -1,9 +1,10 @@
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
-from sqlalchemy import or_, cast, String
+from sqlalchemy import or_, cast, String, func
 from sqlalchemy.exc import IntegrityError
 import logging
+import json
 
 from Models.LabTest import LabTest
 from Serializers.LabTestSerializers import lab_test_serializer, lab_test_serializers
@@ -27,6 +28,14 @@ class LabTestsResource(Resource):
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
 
+            total_records = query.count()
+            total_available_tests = query.filter(LabTest.is_available == True).count()
+            average_price = tenant_session.query(
+                (func.sum(LabTest.price) / func.count(LabTest.id)).label('average_price')
+            ).first()
+
+            average_price = average_price.average_price if average_price and average_price.average_price is not None else 0
+            
             q = request.args.get('q')
             if q:
                 query = query.filter(
@@ -45,7 +54,6 @@ class LabTestsResource(Resource):
                     )
                 )
 
-            total_records = query.count()
 
             # 🔹 Apply pagination if both page and limit are provided
             if page is not None and limit is not None:
@@ -71,6 +79,9 @@ class LabTestsResource(Resource):
                 "page": page,
                 "limit": limit,
                 "total_records": total_records,
+                "average_price": average_price,
+                "total_available_tests": total_available_tests,
+                "total_unavailable_tests": total_records - total_available_tests,
                 "total_pages": (total_records + limit - 1) // limit if limit else 1,
                 "data": result
             }, 200

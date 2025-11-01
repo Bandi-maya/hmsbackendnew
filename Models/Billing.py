@@ -4,8 +4,10 @@ from flask import session
 from sqlalchemy.orm import validates, relationship
 import json
 from extentions import db
-from Models.Users import User
+# from Models.Users import User
 from Models.Orders import Orders
+from Models.WardBeds import WardBeds
+from Models.Payments import Payment
 
 
 # from Models.BillingMedicines import BillingMedicines # Uncomment in your actual project
@@ -21,15 +23,18 @@ class Billing(db.Model):
     tenant_session = None
 
     id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
-
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=True)
+    bed_id = db.Column(db.Integer, db.ForeignKey('ward_beds.id'), nullable=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     total_amount = db.Column(db.Float, default=0)
     amount_paid = db.Column(db.Float, default=0)
 
-    status = db.Column(db.String(50), server_default="PENDING", nullable=True)  # PENDING, PARTIAL_PAYMENT, PAID
+    status = db.Column(db.String(50), server_default="PENDING", nullable=True)
     notes = db.Column(db.Text, nullable=True)
 
     payments = db.relationship("Payment", back_populates="billing")
+    patient = db.relationship("User", back_populates="billing")
+    bed = db.relationship("WardBeds", back_populates="billing")
 
     order = db.relationship("Orders", back_populates="billing")
 
@@ -47,7 +52,7 @@ class Billing(db.Model):
             raise ValueError(f"Prescription ID {value} is already billed.")
         return value
 
-    REQUIRED_FIELDS = ["order_id"]
+    REQUIRED_FIELDS = []
 
     def __init__(self, **kwargs):
         missing = [field for field in self.REQUIRED_FIELDS if not kwargs.get(field)]

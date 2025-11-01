@@ -27,6 +27,8 @@ class WardBeds(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     is_deleted = db.Column(db.Boolean, nullable=False, default=False)
 
+    billing = db.relationship("Billing", back_populates="bed")
+
     patient = db.relationship('User', foreign_keys=[patient_id], lazy=True)
     ward = db.relationship('Ward', backref='ward_beds', lazy=True)
 
@@ -37,7 +39,7 @@ class WardBeds(db.Model):
 
     @validates("bed_no")
     def validate_name(self, key, value):
-        if not value or not isinstance(value, int):
+        if not value or not isinstance(value, str):
             raise ValueError(f"{key} must be a non-empty string")
 
         return value

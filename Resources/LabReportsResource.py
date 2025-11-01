@@ -6,7 +6,9 @@ from sqlalchemy.exc import IntegrityError
 import logging
 
 from Models.LabReport import LabReport
+from Models.PurchaseTest import PurchaseTest
 from Serializers.LabReportSerializers import lab_report_serializer, lab_report_serializers
+from Serializers.PurchaseTestSerializers import purchase_test_serializer
 from new import with_tenant_session_and_user  # Tenant session decorator
 from utils.logger import log_activity
 
@@ -78,11 +80,11 @@ class LabReportsResource(Resource):
     #             return {"error": "No input data provided"}, 400
 
     #         request_id = json_data.get("request_id")
-    #         if not tenant_session.query(LabReport).get(request_id):
+    #         if not tenant_session.query(PurchaseTest).get(request_id):
     #             return {"error": "LabRequest not found"}, 404
 
-    #         LabReport.tenant_session = tenant_session
-    #         lab_report = LabReport(**json_data)
+    #         PurchaseTest.tenant_session = tenant_session
+    #         lab_report = PurchaseTest(**json_data)
     #         tenant_session.add(lab_report)
     #         tenant_session.commit()
     #         return lab_report_serializer.dump(lab_report), 201
@@ -104,7 +106,7 @@ class LabReportsResource(Resource):
             if not report_id:
                 return {"error": "LabReport ID required"}, 400
 
-            lab_report = tenant_session.query(LabReport).get(report_id)
+            lab_report = tenant_session.query(PurchaseTest).get(report_id)
             if not lab_report:
                 return {"error": "LabReport not found"}, 404
 
@@ -113,7 +115,7 @@ class LabReportsResource(Resource):
                     setattr(lab_report, key, value)
 
             tenant_session.commit()
-            return lab_report_serializer.dump(lab_report), 200
+            return purchase_test_serializer.dump(lab_report), 200
 
         except IntegrityError as ie:
             tenant_session.rollback()

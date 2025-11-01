@@ -75,6 +75,7 @@ class WardsResource(Resource):
             tenant_session.flush()  # get ward.id
 
             # Create beds
+            WardBeds.tenant_session = tenant_session
             for bed_no in range(1, ward.capacity + 1):
                 bed = WardBeds(
                     ward_id=ward.id,
@@ -87,9 +88,11 @@ class WardsResource(Resource):
             return ward_serializer.dump(ward), 201
 
         except ValueError as ve:
+            print(ve)
             tenant_session.rollback()
             return {"error": str(ve)}, 400
         except IntegrityError as ie:
+            print(ie)
             tenant_session.rollback()
             return {"error": f"Database integrity error: {str(ie.orig)}"}, 400
         except Exception:
@@ -119,6 +122,7 @@ class WardsResource(Resource):
                     setattr(ward, key, value)
 
             # Adjust beds if capacity changed
+            WardBeds.tenant_session = tenant_session
             current_bed_count = tenant_session.query(WardBeds).filter_by(ward_id=ward_id).count()
             if ward.capacity > current_bed_count:
                 # Add new beds

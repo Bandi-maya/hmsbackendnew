@@ -108,13 +108,13 @@ class ExportResource(Resource):
                     writer.writerows(result)
                     output.seek(0)
 
-                    log_activity("EXPORT_DEPARTMENTS_CSV", details={"count": len(result)})
+                    log_activity(f"EXPORT_{user_type}_CSV", details={"count": len(result)})
 
                     return Response(
                         output,
                         mimetype="text/csv",
                         headers={
-                            "Content-Disposition": "attachment; filename=departments.csv"
+                            f"Content-Disposition": "attachment; filename={user_type}.csv"
                         },
                     )
 
@@ -126,12 +126,12 @@ class ExportResource(Resource):
                         df.to_excel(writer, index=False, sheet_name="Departments")
                     output.seek(0)
 
-                    log_activity("EXPORT_DEPARTMENTS_EXCEL", details={"count": len(result)})
+                    log_activity(f"EXPORT_{user_type}_EXCEL", details={"count": len(result)})
 
                     return send_file(
                         output,
                         as_attachment=True,
-                        download_name="departments.xlsx",
+                        download_name=f"{user_type}.xlsx",
                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     )
 
@@ -140,7 +140,7 @@ class ExportResource(Resource):
                     
 
             else:
-                return {"message": "Invalid type. Only 'departments' is supported currently."}, 400
+                return {"message": "Invalid type or type not supported."}, 400
 
         except Exception as e:
             logger.exception("Error exporting data")

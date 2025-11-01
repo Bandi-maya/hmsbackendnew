@@ -3,7 +3,7 @@ from Models.PurchaseTest import PurchaseTest
 from Serializers.LabTestSerializers import lab_test_serializer
 
 class PurchaseTestSerializer(ma.SQLAlchemyAutoSchema):
-    lab_tests = ma.Nested(lab_test_serializer, dump_only=True)
+    lab_test = ma.Nested(lab_test_serializer, dump_only=True)
 
     class Meta:
         model = PurchaseTest

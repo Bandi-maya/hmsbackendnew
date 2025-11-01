@@ -8,6 +8,7 @@ from extentions import db
 from Models.UserExtraFields import UserExtraFields
 from Models.Department import Department
 from Models.staffSchedule import StaffSchedule
+from Models.Billing import Billing
 
 
 class GenderEnum(enum.Enum):
@@ -46,6 +47,7 @@ class User(db.Model):
     extra_fields = db.relationship("UserExtraFields", backref="user_parent", uselist=False)
     department = db.relationship("Department", backref="user_parent", uselist=False)
     schedule = db.relationship("StaffSchedule", backref="user_parent", uselist=False)
+    billing = db.relationship("Billing", backref="user")
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

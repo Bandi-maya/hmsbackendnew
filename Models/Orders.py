@@ -2,7 +2,7 @@ from datetime import datetime
 from sqlalchemy.orm import validates
 from extentions import db
 from Models.Medicine import Medicine
-from Models.Users import User
+# from Models.Users import User
 from Models.PurchaseTest import PurchaseTest
 from Models.PurchaseOrder import PurchaseOrder
 from Models.PurchaseSurgery import PurchaseSurgery

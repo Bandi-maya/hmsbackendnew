@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy.orm import validates
 from extentions import db
-from Models.Users import User
+# from Models.Users import User
 # from Models.PrescriptionMedicines import PrescriptionMedicines
 # from Models.PrescriptionTests import PrescriptionTests
 

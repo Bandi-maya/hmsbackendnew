@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import validates
 from extentions import db
 from Models.Department import Department
-from Models.Users import User
+# from Models.Users import User
 
 class Ward(db.Model):
     __tablename__ = 'ward'

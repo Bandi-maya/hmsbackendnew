@@ -44,8 +44,13 @@ class TokenResource(Resource):
                     return {"error": "Invalid date format. Use YYYY-MM-DD"}, 400
             Doctor = aliased(User)
             Patient = aliased(User)
-            query = query.join(Doctor, Token.doctor_id == Doctor.id).filter(~Doctor.is_deleted)
-            query = query.join(Patient, Token.patient_id == Patient.id).filter(~Patient.is_deleted)
+            query = (
+                query
+                .join(Patient, Token.patient_id == Patient.id)
+                .filter(~Patient.is_deleted)
+                .outerjoin(Doctor, Token.doctor_id == Doctor.id)  # 👈 use LEFT JOIN instead of INNER
+                .filter(or_(Doctor.is_deleted.is_(False), Doctor.id.is_(None)))  # include tokens without a doctor
+            )
             total_records = query.count()
             scheduled_records = query.filter(Token.status == 'Alloted').count()
             completed_records = query.filter(Token.status == 'Completed').count()

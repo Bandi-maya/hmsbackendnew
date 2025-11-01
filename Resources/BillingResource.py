@@ -3,7 +3,7 @@ import logging
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.exc import IntegrityError
 
 from Models.BillingSurgeries import BillingSurgeries
@@ -12,8 +12,10 @@ from Models.Billing import Billing
 from Models.BillingMedicines import BillingMedicines
 from Models.BillingTests import BillingTests
 from Models.Orders import Orders
+from Models.WardBeds import WardBeds
 from Models.Users import User
 from Serializers.BillingSerializers import billing_serializers, billing_serializer
+from Serializers.OrdersSerializer import order_serializer
 from new import with_tenant_session_and_user
 
 logger = logging.getLogger(__name__)
@@ -26,10 +28,16 @@ class BillingResource(Resource):
     def get(self, tenant_session):
         try:
             query = tenant_session.query(Billing)
-            query = query.join(Orders)
-            query = query.join(User, User.id==Orders.user_id)
+            query = query.outerjoin(Orders, Billing.order_id == Orders.id)
+            query = query.outerjoin(User, User.id == Orders.user_id)
+            query = query.outerjoin(WardBeds, Billing.bed_id == WardBeds.id)
             total_records = query.count()
-
+            paid_records = query.filter(Billing.status == "PAID").count()
+            total_revenue = (
+                query.filter(Billing.status == "PAID")
+                .with_entities(func.coalesce(func.sum(Billing.total_amount), 0))
+                .scalar()
+            )
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
             limit = request.args.get("limit", type=int)
@@ -69,6 +77,8 @@ class BillingResource(Resource):
                 "page": page,
                 "limit": limit,
                 "total_records": total_records,
+                "paid_records": paid_records,
+                "total_revenue": total_revenue,
                 "total_pages": (total_records + limit - 1) // limit if limit else 1,
                 "data": result
             }, 200
@@ -93,90 +103,35 @@ class BillingResource(Resource):
             order = Orders.query.get(order_id)
             if not order:
                 return {"error": "Order not found"}, 404
-            
-            Billing.tenant_session = tenant_session
+            order = order_serializer.dump(order)
+
+            medicines = order.get('medicines', [])
+            tests = order.get('lab_tests', [])
+            surgeries = order.get('surgeries', [])
+            total_amount = 0
+
+            for med in medicines:
+                stock_list = med.get('medicine_stock', [])
+                if stock_list:
+                    price = stock_list[0].get('price', 0)
+                else:
+                    price = 0
+                quantity = med.get('quantity', 0)
+                total_amount += price * quantity
+
+
+            for test in tests:
+                total_amount += test.get('lab_test').get('price', 0)
+                
+            for surgery in surgeries:
+                total_amount += surgery.get('price', 0)
             billing = Billing(
                 order_id=order_id,
                 amount_paid=json_data.get('amount_paid', 0),
-                total_amount=order.total_amount,
+                total_amount=total_amount,
                 notes=json_data.get('notes'),
             )
             tenant_session.add(billing)
-            tenant_session.commit()
-
-            return billing_serializer.dump(billing)
-
-            medicines = json_data.get("medicines", [])
-            tests = json_data.get("tests", [])
-            surgeries = json_data.get("surgeries", [])
-
-            if not (medicines or tests or surgeries):
-                return {"error": "Medicines, Tests, or Surgeries are required for billing"}, 400
-
-            total_amount = 0
-            patient_id = json_data.get("patient_id")
-
-            # Fetch or create billing record
-            billing = tenant_session.query(Billing).filter(
-                Billing.patient_id == patient_id,
-                Billing.status != "PAID"
-            ).first()
-            if not billing:
-                Billing.tenant_session = tenant_session
-                billing = Billing(
-                    patient_id=patient_id,
-                    notes=json_data.get('notes'),
-                    prescription_id=json_data.get('prescription_id')
-                )
-                tenant_session.add(billing)
-                tenant_session.flush()
-
-            # Handle Medicines
-            for med in medicines:
-                med_id = med.get("medicine_id")
-                qty = int(med.get("quantity", 1))
-                if not med_id:
-                    continue
-
-                stock_record = tenant_session.query(MedicineStock).filter_by(medicine_id=med_id).first()
-                if not stock_record or stock_record.quantity < qty:
-                    tenant_session.rollback()
-                    return {"error": f"Not enough stock for medicine ID {med_id}"}, 400
-
-                stock_record.quantity -= qty
-                BillingMedicines.tenant_session = tenant_session
-                added_medicine = BillingMedicines(
-                    billing_id=billing.id,
-                    medicine_id=med_id,
-                    quantity=qty
-                )
-                tenant_session.add(added_medicine)
-                tenant_session.flush()
-                total_amount += added_medicine.price
-
-            # Handle Tests
-            for test in tests:
-                BillingTests.tenant_session = tenant_session
-                added_test = BillingTests(
-                    billing_id=billing.id,
-                    test_id=test.get('test_id')
-                )
-                tenant_session.add(added_test)
-                tenant_session.flush()
-                total_amount += added_test.price
-
-            # Handle Surgeries
-            for surgery in surgeries:
-                BillingSurgeries.tenant_session = tenant_session
-                added_surgery = BillingSurgeries(
-                    billing_id=billing.id,
-                    surgery_id=surgery.get('surgery_id')
-                )
-                tenant_session.add(added_surgery)
-                tenant_session.flush()
-                total_amount += added_surgery.price
-
-            billing.total_amount = total_amount
             tenant_session.commit()
 
             return billing_serializer.dump(billing), 201

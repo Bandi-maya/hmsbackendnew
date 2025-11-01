@@ -27,6 +27,13 @@ class OperationTheatreResource(Resource):
 
             # 🔹 Base query
             query = tenant_session.query(OperationTheatre)
+            total_records = query.count()
+            available_theatres = query.filter(OperationTheatre.status == 'AVAILABLE').count()
+            under_maintenance_theatres = query.filter(OperationTheatre.status == 'UNDER_MAINTENANCE').count()
+            in_use_theatres = query.filter(OperationTheatre.status == 'IN_USE').count()
+            cleaning_theatres = query.filter(OperationTheatre.status == 'CLEANING').count()
+            active_theatres = query.filter(OperationTheatre.is_active == True).count()
+            out_of_service_theatres = query.filter(OperationTheatre.status == 'OUT_OF_SERVICE').count()
             q = request.args.get('q')
             if q:
                 query = query.filter(
@@ -53,7 +60,6 @@ class OperationTheatreResource(Resource):
                         OperationTheatre.status.ilike(f"%{status}%"),
                     )
                 )
-            total_records = query.count()
 
             # 🔹 Pagination params (optional)
             page = request.args.get("page", type=int)
@@ -79,6 +85,12 @@ class OperationTheatreResource(Resource):
                 "page": page,
                 "limit": limit,
                 "total_records": total_records,
+                "under_maintenance_theatres": under_maintenance_theatres,
+                "out_of_service_theatres": out_of_service_theatres,
+                "in_use_theatres": in_use_theatres,
+                "available_theatres": available_theatres,
+                "cleaning_theatres": cleaning_theatres,
+                "active_theatres": active_theatres,
                 "total_pages": (total_records + limit - 1) // limit if limit else 1,
                 "data": result
             }, 200

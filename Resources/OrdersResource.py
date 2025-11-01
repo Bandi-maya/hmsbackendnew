@@ -4,7 +4,7 @@ from decimal import Decimal
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.exc import IntegrityError
 import logging
 from sqlalchemy.orm import aliased
@@ -46,6 +46,13 @@ class OrdersResource(Resource):
             # 🔹 Base query
             query = tenant_session.query(Orders).distinct()
             query = query.join(User)
+            today_orders = 0
+            total_purchase_items = 0
+            total_in_progress_surgeries = 0
+            total_pending_surgeries = 0
+            total_completed_surgeries = 0
+            total_records = 0
+            total_pending_tests = 0
 
             # 🔹 Strict Type Filtering: include only one type, exclude others
             if order_type == 'medicine':
@@ -55,6 +62,12 @@ class OrdersResource(Resource):
                     ~Orders.surgeries.any(),      # has surgeries
                     Orders.medicines.any(),     # no medicines
                     ~Orders.lab_tests.any()      # no lab tests
+                )
+                total_records = query.count()
+                today_orders = query.filter(Orders.received_date == func.current_date()).count()
+                total_purchase_items = total_purchase_items+(
+                    query.with_entities(func.coalesce(func.sum(PurchaseOrder.quantity), 0))
+                    .scalar()
                 )
                 q = request.args.get('q')
                 if q:
@@ -75,6 +88,17 @@ class OrdersResource(Resource):
                     ~Orders.medicines.any(),     # no medicines
                     Orders.lab_tests.any()      # no lab tests
                 )
+                total_records = query.count()
+                today_orders = query.filter(Orders.received_date == func.current_date()).count()
+                total_purchase_items = total_purchase_items+(
+                    query.with_entities(func.count(PurchaseTest.id))
+                    .scalar()
+                )
+                total_pending_tests = total_pending_tests+(
+                    query.filter(PurchaseTest.result == None)
+                    .with_entities(func.count(PurchaseTest.id))
+                    .scalar()
+                )
                 q = request.args.get('q')
                 if q:
                     query = query.filter(
@@ -93,6 +117,28 @@ class OrdersResource(Resource):
                     Orders.surgeries.any(),      # has surgeries
                     ~Orders.medicines.any(),     # no medicines
                     ~Orders.lab_tests.any()      # no lab tests
+                )
+                today_orders = query.filter(Orders.received_date == func.current_date()).count()
+                total_records = query.count()
+                total_purchase_items = total_purchase_items+(
+                    query.with_entities(func.count(PurchaseSurgery.id))
+                    # query.with_entities(func.coalesce(PurchaseSurgecry))
+                    .scalar()
+                )
+                total_pending_surgeries = total_pending_surgeries+(
+                    query.filter(PurchaseSurgery.status == "SCHEDULED")
+                    .with_entities(func.count(PurchaseSurgery.id))
+                    .scalar()
+                )
+                total_in_progress_surgeries = total_in_progress_surgeries+(
+                    query.filter(PurchaseSurgery.status == "IN_PROGRESS")
+                    .with_entities(func.count(PurchaseSurgery.id))
+                    .scalar()
+                )
+                total_completed_surgeries = total_completed_surgeries+(
+                    query.filter(PurchaseSurgery.status == "COMPLETED")
+                    .with_entities(func.count(PurchaseSurgery.id))
+                    .scalar()
                 )
                 q = request.args.get('q')
                 status = request.args.get('status')
@@ -116,6 +162,8 @@ class OrdersResource(Resource):
                 query = query.join(Prescriptions, Prescriptions.id==Orders.prescription_id)
                 Doctor = aliased(User)
                 query = query.join(Doctor, Doctor.id==Prescriptions.doctor_id)
+                today_orders = query.filter(Orders.received_date == func.current_date()).count()
+                total_records = query.count()
                 q = request.args.get('q')
                 if q:
                     query = query.filter(
@@ -129,9 +177,6 @@ class OrdersResource(Resource):
 
             elif order_type is not None:
                 return {"error": "Invalid type. Must be one of: medicine, lab_test, surgery, prescription"}, 400
-
-
-            total_records = query.count()
 
             # 🔹 Pagination
             if page is not None and limit is not None:
@@ -157,6 +202,12 @@ class OrdersResource(Resource):
             return {
                 "page": page,
                 "limit": limit,
+                "today_orders": today_orders,
+                "total_purchase_items": total_purchase_items,
+                "total_pending_tests": total_pending_tests,
+                "total_in_progress_surgeries": total_in_progress_surgeries,
+                "total_pending_surgeries": total_pending_surgeries,
+                "total_completed_surgeries": total_completed_surgeries,
                 "total_records": total_records,
                 "total_pages": (total_records + limit - 1) // limit if limit else 1,
                 "data": result
@@ -240,12 +291,13 @@ class OrdersResource(Resource):
                 total_amount += price
 
                 # ✅ DECREMENT INVENTORY HERE
-                previous_stock = int(medicine_stock.quantity)
-                medicine_stock.quantity -= quantity
-                
-                if int(medicine_stock.quantity) < 0:
-                    tenant_session.rollback()
-                    return {"error": f"Stock went negative for Medicine ID {medicine_id}"}, 400
+                if not prescription_id:
+                    previous_stock = int(medicine_stock.quantity)
+                    medicine_stock.quantity -= quantity
+                    
+                    if int(medicine_stock.quantity) < 0:
+                        tenant_session.rollback()
+                        return {"error": f"Stock went negative for Medicine ID {medicine_id}"}, 400
                 
                 tenant_session.add(medicine_stock)
 
@@ -277,6 +329,11 @@ class OrdersResource(Resource):
                 PurchaseTest.tenant_session = tenant_session
                 purchase_test = PurchaseTest(
                     order_id=order.id,
+                    notes=item.get("notes"),
+                    result=item.get("result"),
+                    recommendations=item.get("recommendations"),
+                    findings=item.get("findings"),
+                    additional_notes=item.get("additional_notes"),
                     status=status,
                     test_id=test_id,
                 )
@@ -302,7 +359,7 @@ class OrdersResource(Resource):
                     tenant_session.rollback()
                     return {"error": f"Surgery Type ID {surgery_type_id} not found"}, 404
 
-                total_amount += price
+                total_amount += int(price)
 
                 PurchaseSurgery.tenant_session = tenant_session
                 purchase_surgery = PurchaseSurgery(
@@ -317,12 +374,13 @@ class OrdersResource(Resource):
                 )
                 tenant_session.add(purchase_surgery)
 
-            Billing.tenant_session = tenant_session
-            billing = Billing(
-                total_amount=total_amount,
-                order_id=order.id
-            )
-            tenant_session.add(billing)
+            if not prescription_id:
+                Billing.tenant_session = tenant_session
+                billing = Billing(
+                    total_amount=total_amount,
+                    order_id=order.id
+                )
+                tenant_session.add(billing)
 
             tenant_session.commit()
             
@@ -419,7 +477,7 @@ class OrdersResource(Resource):
                 if item_id and item_id in existing_medicines:
                     # Updating existing medicine - calculate quantity difference
                     existing_quantity = existing_medicines[item_id].quantity
-                    quantity_diff = quantity - existing_quantity
+                    quantity_diff = int(quantity) - int(existing_quantity)
                     
                     if quantity_diff > 0 and int(medicine_stock.quantity) < quantity_diff:
                         tenant_session.rollback()
@@ -494,6 +552,11 @@ class OrdersResource(Resource):
                     # Add new lab test
                     PurchaseTest.tenant_session = tenant_session
                     new_test = PurchaseTest(
+                        notes=item_data.get("notes"),
+                        result=item_data.get("result"),
+                        recommendations=item_data.get("recommendations"),
+                        findings=item_data.get("findings"),
+                        additional_notes=item_data.get("additional_notes"),
                         order_id=order.id,
                         test_id=test_id,
                         status=status
@@ -555,7 +618,7 @@ class OrdersResource(Resource):
                     )
                     tenant_session.add(purchase_surgery)
 
-                total_amount += price
+                total_amount += int(price)
 
             # Delete surgery items that are not in the updated data
             for item_id, surgery in existing_surgeries.items():

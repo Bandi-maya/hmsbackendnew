@@ -100,13 +100,18 @@ class UsersResource(Resource):
             total_records = query.count()
 
             # Pagination
-            page = request.args.get("page", type=int, default=1)
-            limit = request.args.get("limit", type=int, default=10)
-            if page < 1: page = 1
-            if limit < 1: limit = 10
+            page = request.args.get("page")
+            limit = request.args.get("limit")
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                # If pagination not provided, return all
+                page = 1
+                limit = total_records
 
-            query = query.offset((page - 1) * limit).limit(limit)
-            users = query.all()
+            users = query.all() 
 
             # Response
             return {

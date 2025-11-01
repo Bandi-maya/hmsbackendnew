@@ -85,88 +85,88 @@ class BillingPaymentResource(Resource):
             logger.exception("Error recording payment")
             return {"error": "Internal error occurred"}, 500
 
-    # # ✅ GET payments for a billing record
-    # @with_tenant_session_and_user
-    # def get(self, tenant_session, billing_id=None, **kwargs):
-    #     try:
-    #         if billing_id:
-    #             # 🔹 Fetch single billing with payments
-    #             billing = tenant_session.query(Billing).get(billing_id)
-    #             if not billing:
-    #                 return {"error": f"Billing with ID {billing_id} not found."}, 404
+    # ✅ GET payments for a billing record
+    @with_tenant_session_and_user
+    def get(self, tenant_session, billing_id=None, **kwargs):
+        try:
+            if billing_id:
+                # 🔹 Fetch single billing with payments
+                billing = tenant_session.query(Billing).get(billing_id)
+                if not billing:
+                    return {"error": f"Billing with ID {billing_id} not found."}, 404
 
-    #             payments = billing.payments
-    #             return {
-    #                 "billing_id": billing.id,
-    #                 "total_amount": billing.total_amount,
-    #                 "amount_paid": billing.amount_paid,
-    #                 "status": billing.status,
-    #                 "payments": [
-    #                     {
-    #                         "id": p.id,
-    #                         "amount": p.amount,
-    #                         "method": p.method,
-    #                         "transaction_ref": p.transaction_ref,
-    #                         "timestamp": p.timestamp.isoformat()
-    #                     } for p in payments
-    #                 ]
-    #             }, 200
+                payments = billing.payments
+                return {
+                    "billing_id": billing.id,
+                    "total_amount": billing.total_amount,
+                    "amount_paid": billing.amount_paid,
+                    "status": billing.status,
+                    "payments": [
+                        {
+                            "id": p.id,
+                            "amount": p.amount,
+                            "method": p.method,
+                            "transaction_ref": p.transaction_ref,
+                            "timestamp": p.timestamp.isoformat()
+                        } for p in payments
+                    ]
+                }, 200
 
-    #         # 🔹 Fetch all payments with optional pagination
-    #         query = tenant_session.query(Payment)
-    #         BillingUser = aliased(User)
+            # 🔹 Fetch all payments with optional pagination
+            query = tenant_session.query(Payment)
+            BillingUser = aliased(User)
 
-    #         query = query.join(Billing)
-    #         # query = query.join(BillingUser, Billing.patient_id == BillingUser.id)
+            query = query.join(Billing)
+            # query = query.join(BillingUser, Billing.patient_id == BillingUser.id)
 
-    #         total_records = query.count()
+            total_records = query.count()
 
-    #         page = request.args.get("page", type=int)
-    #         limit = request.args.get("limit", type=int)
+            page = request.args.get("page", type=int)
+            limit = request.args.get("limit", type=int)
 
-    #         q = request.args.get('q')
-    #         if q:
-    #             query = query.filter(
-    #                 or_(
-    #                     BillingUser.name.ilike(f"%{q}%"),
-    #                     cast(Payment.amount, String).ilike(f"%{q}%"),
-    #                     Payment.transaction_ref.ilike(f"%{q}%"),
-    #                 )
-    #             )
-    #         status = request.args.get('status')
-    #         if status:
-    #             query = query.filter(
-    #                 or_(
-    #                     Billing.status== status
-    #                 )
-    #             )
-    #         method = request.args.get('method')
-    #         if method:
-    #             query = query.filter(
-    #                 or_(
-    #                     Payment.method== method
-    #                 )
-    #             )
+            q = request.args.get('q')
+            if q:
+                query = query.filter(
+                    or_(
+                        BillingUser.name.ilike(f"%{q}%"),
+                        cast(Payment.amount, String).ilike(f"%{q}%"),
+                        Payment.transaction_ref.ilike(f"%{q}%"),
+                    )
+                )
+            status = request.args.get('status')
+            if status:
+                query = query.filter(
+                    or_(
+                        Billing.status== status
+                    )
+                )
+            method = request.args.get('method')
+            if method:
+                query = query.filter(
+                    or_(
+                        Payment.method== method
+                    )
+                )
 
-    #         if page is not None and limit is not None:
-    #             if page < 1: page = 1
-    #             if limit < 1: limit = 10
-    #             query = query.offset((page - 1) * limit).limit(limit)
-    #         else:
-    #             page = 1
-    #             limit = total_records
+            if page is not None and limit is not None:
+                if page < 1: page = 1
+                if limit < 1: limit = 10
+                query = query.offset((page - 1) * limit).limit(limit)
+            else:
+                page = 1
+                limit = total_records
 
-    #         payments = query.all()
-    #         result = payment_serializers.dump(payments)
+            payments = query.all()
+            result = payment_serializers.dump(payments)
 
-    #         return {
-    #             "page": page,
-    #             "limit": limit,
-    #             "total_records": total_records,
-    #             "total_pages": (total_records + limit - 1) // limit if limit else 1,
-    #             "data": result
-    #         }, 200
+            return {
+                "page": page,
+                "limit": limit,
+                "total_records": total_records,
+                "total_pages": (total_records + limit - 1) // limit if limit else 1,
+                "data": result
+            }, 200
 
-    #     except Exception:
-    #         logger.exception("Error fetching payments")
-    #         return {"error": "Internal error occurred"}, 500
+        except Exception:
+            logger.exception("Error fetching payments")
+            return {"error": "Internal error occurred"}, 500
