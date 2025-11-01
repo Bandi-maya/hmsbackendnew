@@ -1,5 +1,5 @@
 import json
-from flask import request
+from flask import request, g
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from sqlalchemy import func
@@ -11,6 +11,8 @@ from Models.WardBeds import WardBeds
 from Models.Payments import Payment
 from Models.UserType import UserType
 from Models.Emergencies import Emergency
+from Models.Wards import Wards
+from Models.StaffSchedule import StaffSchedule
 
 from new import with_tenant_session_and_user  # ✅ Tenant session decorator
 from utils.logger import log_activity
@@ -62,7 +64,30 @@ class StatsResource(Resource):
             monthly_revenue = tenant_session.query(func.sum(Payment.amount))\
                 .filter(func.date_trunc('month', Payment.created_at) == func.date_trunc('month', func.current_date()))\
                 .scalar() or 0
+            schedule = {}
+            if g.user.get('id'):
+                schedule = tenant_session.query(StaffSchedule).filter_by(staff_id= g.user.get('id')).first()
+                if not schedule:
+                    schedule = {}
+            ward_counts = (
+                tenant_session.query(
+                    Wards.ward_type,
+                    func.count(wb.id).label("total_beds"),  # total beds
+                    func.count(case([(wb.patient_id == None, 1)])).label("available_beds")  # free beds
+                )
+                .join(wb, wb.ward_id == Wards.id, isouter=True)  # join WardBeds, include wards with 0 beds
+                .group_by(Wards.ward_type)
+                .all()
+            )
 
+            # Example output
+            ward_counts_json = {
+                ward_type: {
+                    "total_beds": total,
+                    "available_beds": available
+                }
+                for ward_type, total, available in ward_counts
+            }
             # ✅ Build stats list
             stats = [
                 {
@@ -126,7 +151,7 @@ class StatsResource(Resource):
             # ✅ Log activity
             log_activity("GET_DASHBOARD_STATS", details=json.dumps({"count": len(stats)}))
 
-            return {"data": {"stats": stats}}, 200
+            return {"data": {"stats": stats}, "schedule": scehdule, "wards": ward_counts_json}, 200
 
         except Exception as e:
             logger.exception("Error fetching dashboard stats")
